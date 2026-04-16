@@ -1,0 +1,8 @@
+name: gsd
+phases:
+  - new-project
+  - discuss-phase
+  - plan-phase
+  - execute-phase
+  - verify-work
+  - ship

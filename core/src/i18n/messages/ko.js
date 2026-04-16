@@ -1,0 +1,15 @@
+export default {
+  'errors.no_backup': '{id}에 {path}의 백업이 없습니다',
+  'errors.entry_not_found': '항목을 찾을 수 없습니다: {id}',
+  'errors.project_locked': '다른 프로세스가 프로젝트를 잠그고 있습니다',
+  'errors.cannot_invert': '되돌릴 수 없는 작업입니다: {type}',
+  'errors.checksum_mismatch': '{path}의 체크섬이 일치하지 않습니다 (--force 사용)',
+  'errors.no_history': '롤백할 히스토리 항목이 없습니다',
+  'errors.range_not_implemented': '--range는 v1에서 지원되지 않습니다. --last 또는 --to를 사용하세요',
+  'errors.config_exists': '설정 파일이 이미 존재합니다: {path} (덮어쓰려면 --force 사용)',
+  'errors.unknown_phase': '알 수 없는 단계입니다: {phase}',
+  'errors.unknown_preset': '알 수 없는 프리셋입니다: {name}',
+  'errors.file_exists': '파일이 이미 존재합니다: {path}',
+  'warnings.phase_not_in_presets': "경고: '{phase}' 단계가 활성화된 프리셋에 없습니다",
+  'cli.error_prefix': '오류: {message}'
+};

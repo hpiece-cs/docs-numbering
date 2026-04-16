@@ -1,0 +1,11 @@
+name: wds
+phases:
+  - project-setup
+  - project-brief
+  - trigger-mapping
+  - scenarios
+  - ux-design
+  - agentic-development
+  - asset-generation
+  - design-system
+  - product-evolution

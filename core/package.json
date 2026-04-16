@@ -1,0 +1,31 @@
+{
+  "name": "@hpiece/docs-numbering",
+  "version": "0.1.0",
+  "description": "CLI-neutral numbered markdown documentation manager for AI coding CLIs",
+  "type": "module",
+  "bin": {
+    "docs-numbering": "bin/docs-numbering.js",
+    "docnum": "bin/docs-numbering.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "yaml": "^2.6.0",
+    "@sindresorhus/slugify": "^2.2.1",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0",
+    "prettier": "^3.3.0"
+  }
+}

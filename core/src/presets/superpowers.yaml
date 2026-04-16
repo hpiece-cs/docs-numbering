@@ -1,0 +1,7 @@
+name: superpowers
+phases:
+  - brainstorm
+  - spec
+  - plan
+  - tdd
+  - review

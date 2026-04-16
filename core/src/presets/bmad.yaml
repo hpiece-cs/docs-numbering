@@ -1,0 +1,11 @@
+name: bmad
+phases:
+  - brief
+  - prd
+  - architecture
+  - ux-design
+  - epics
+  - stories
+  - dev
+  - review
+  - retrospective
