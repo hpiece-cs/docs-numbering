@@ -2,6 +2,34 @@
 
 A CLI tool for managing numbered markdown documentation with methodology-aware naming conventions.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+  - [init](#init--initialize-configuration)
+  - [new](#new-title--create-numbered-document)
+  - [list](#list--query-documents)
+  - [phases](#phases--show-valid-phases)
+  - [migrate](#migrate--bulk-rename-existing-files)
+  - [validate](#validate--check-consistency)
+  - [history](#history--view-operation-log)
+  - [rollback](#rollback--undo-operations)
+- [Global Options](#global-options)
+- [Configuration](#configuration)
+  - [Config Resolution Order](#config-resolution-order)
+  - [Configuration Reference](#configuration-reference) — `locale`, `docs_dir`, `naming_pattern`, `numbering.*`, `slug.*`, `migration.*`, `history.*`
+  - [Full Example](#full-example)
+- [Naming Pattern](#naming-pattern)
+- [Presets](#presets) — BMAD, GSD, WDS, Superpowers
+- [Korean Title Support](#korean-title-support)
+- [Internationalization](#internationalization)
+- [Claude Code Integration](#claude-code-integration)
+- [Troubleshooting](#troubleshooting)
+- [Project Structure](#project-structure)
+
+---
+
 ## Installation
 
 ```bash
