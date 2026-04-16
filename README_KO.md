@@ -1,5 +1,7 @@
 # docs-numbering
 
+[English](README.md)
+
 마크다운 문서를 **일관된 번호 규칙**으로 관리하는 CLI 도구입니다. 코어 CLI는 에이전트에 구애받지 않으며, **Claude Code**, **Codex**, **OpenCode**, **Gemini CLI**, **GitHub Copilot** 어댑터를 제공합니다.
 
 ## 왜 필요한가
@@ -17,11 +19,15 @@ docs/
 ## 빠른 시작
 
 ```bash
-# 설치
-cd core && npm install && npm link
+# 클론
+git clone https://github.com/hpiece-cs/docs-numbering.git
+cd docs-numbering/core && npm install && npm link
 
 # CLI가 PATH에 없으면 추가
+# zsh:
 echo 'export PATH="$HOME/.npm-packages/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+# bash:
+echo 'export PATH="$HOME/.npm-packages/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
 
 # 프로젝트에서 초기화
 cd my-project
@@ -42,8 +48,8 @@ docs-numbering rollback --last --apply
 ## 주요 기능
 
 - **순차 번호 매김** — 설정 가능한 패턴
-- **방법론 프리셋** — BMAD, GSD, WDS, Superpowers (혼합 사용 가능)
-- **한국어 파일명 지원** — 한국어 유지 또는 로마자 변환 선택
+- **방법론 프리셋** — BMAD, GSD, WDS, Superpowers (혼합 사용 가능); 방법론 워크플로우에서 생성되는 문서에 자동으로 번호 매김 적용
+- **파일명 자동 현지화** — 방법론이 생성하는 문서 파일명이 자동으로 사용자 언어로 변환; 한국어 로마자 변환 옵션 제공
 - **원본 파일명 보존** — `{filename}` 변수로 마이그레이션 시 기존 이름 유지
 - **이력 & 롤백** — 모든 작업이 기록되어 Git 없이도 되돌리기 가능
 - **다국어 (i18n)** — CLI 메시지가 OS 로케일에 따라 한국어/영어 자동 전환
@@ -125,42 +131,47 @@ slug:
 
 > **심볼릭 링크 vs 복사**: 심볼릭 링크(`ln -s`)를 사용하면 소스 업데이트가 자동 반영됩니다. 독립 프로젝트라면 `cp`로 복사하세요.
 
+아래 예시에서 `DOCS_NUM`은 이 저장소를 클론한 경로입니다.
+
 ### Claude Code
 
 ```bash
-mkdir -p <프로젝트>/.claude/skills <프로젝트>/.claude/commands
-ln -s <docs-numbering>/adapters/claude-code/skills/docs-numbering <프로젝트>/.claude/skills/docs-numbering
-ln -s <docs-numbering>/adapters/claude-code/commands/*.md <프로젝트>/.claude/commands/
+DOCS_NUM=/path/to/docs-numbering
+mkdir -p .claude/skills .claude/commands
+ln -s $DOCS_NUM/adapters/claude-code/skills/docs-numbering .claude/skills/docs-numbering
+ln -s $DOCS_NUM/adapters/claude-code/commands/*.md .claude/commands/
 ```
 슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
 
 ### Codex / Cursor / Windsurf (AGENTS.md)
 
 ```bash
-cp <docs-numbering>/adapters/agents-md/AGENTS.md <프로젝트>/AGENTS.md
+cp $DOCS_NUM/adapters/agents-md/AGENTS.md ./AGENTS.md
 ```
 자연어 트리거: "create doc", "organize docs", "번호 매겨줘"
-
-### Gemini CLI
-
-```bash
-cp <docs-numbering>/adapters/gemini/GEMINI.md <프로젝트>/GEMINI.md
-```
 
 ### OpenCode
 
 ```bash
-mkdir -p <프로젝트>/.opencode/commands
-cp <docs-numbering>/adapters/opencode/commands/*.md <프로젝트>/.opencode/commands/
+mkdir -p .opencode/commands
+cp $DOCS_NUM/adapters/opencode/commands/*.md .opencode/commands/
 ```
 슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+
+### Gemini CLI
+
+```bash
+cp $DOCS_NUM/adapters/gemini/GEMINI.md ./GEMINI.md
+```
+자연어 트리거
 
 ### GitHub Copilot
 
 ```bash
-mkdir -p <프로젝트>/.github
-cp <docs-numbering>/adapters/copilot/.github/copilot-instructions.md <프로젝트>/.github/
+mkdir -p .github
+cp $DOCS_NUM/adapters/copilot/.github/copilot-instructions.md .github/
 ```
+자연어 트리거
 
 ## 문서
 

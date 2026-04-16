@@ -1,5 +1,7 @@
 # docs-numbering
 
+[한국어](README_KO.md)
+
 A CLI tool for managing numbered markdown documentation with methodology-aware naming conventions. The core CLI is agent-agnostic. Ships with adapters for **Claude Code**, **Codex**, **OpenCode**, **Gemini CLI**, and **GitHub Copilot**.
 
 ## Why
@@ -17,11 +19,15 @@ docs/
 ## Quick Start
 
 ```bash
-# Install
-cd core && npm install && npm link
+# Clone
+git clone https://github.com/hpiece-cs/docs-numbering.git
+cd docs-numbering/core && npm install && npm link
 
 # Ensure CLI is in PATH (if not already)
+# zsh:
 echo 'export PATH="$HOME/.npm-packages/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+# bash:
+echo 'export PATH="$HOME/.npm-packages/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
 
 # Initialize in your project
 cd my-project
@@ -42,8 +48,8 @@ docs-numbering rollback --last --apply
 ## Features
 
 - **Sequential numbering** with configurable patterns
-- **Methodology presets** — BMAD, GSD, WDS, Superpowers (mix and match)
-- **Korean filename support** — preserve or romanize
+- **Methodology presets** — BMAD, GSD, WDS, Superpowers (mix and match); documents produced during methodology workflows are numbered automatically
+- **Auto-localized filenames** — methodology-generated documents are automatically named in your language, not English; optional Korean romanization
 - **Original filename preservation** — `{filename}` variable keeps names untouched during migration
 - **History & rollback** — every operation journaled, fully reversible without Git
 - **i18n** — CLI messages in English and Korean (auto-detected from OS locale)
@@ -125,41 +131,44 @@ See [User Manual](docs/USER_MANUAL.md) for full configuration reference.
 
 > **Symlink vs copy**: Use symlinks (`ln -s`) to auto-reflect source updates. Use `cp` for standalone projects that don't track the docs-numbering repo.
 
+In the examples below, `DOCS_NUM` is the path where you cloned this repository.
+
 ### Claude Code
 
 ```bash
-mkdir -p <project>/.claude/skills <project>/.claude/commands
-ln -s <docs-numbering>/adapters/claude-code/skills/docs-numbering <project>/.claude/skills/docs-numbering
-ln -s <docs-numbering>/adapters/claude-code/commands/*.md <project>/.claude/commands/
+DOCS_NUM=/path/to/docs-numbering
+mkdir -p .claude/skills .claude/commands
+ln -s $DOCS_NUM/adapters/claude-code/skills/docs-numbering .claude/skills/docs-numbering
+ln -s $DOCS_NUM/adapters/claude-code/commands/*.md .claude/commands/
 ```
 Slash commands: `/docs-new`, `/docs-migrate`, `/docs-rollback`
 
 ### Codex / Cursor / Windsurf (AGENTS.md)
 
 ```bash
-cp <docs-numbering>/adapters/agents-md/AGENTS.md <project>/AGENTS.md
+cp $DOCS_NUM/adapters/agents-md/AGENTS.md ./AGENTS.md
 ```
 Triggers on natural language: "create doc", "organize docs", "번호 매겨줘"
 
 ### Gemini CLI
 
 ```bash
-cp <docs-numbering>/adapters/gemini/GEMINI.md <project>/GEMINI.md
+cp $DOCS_NUM/adapters/gemini/GEMINI.md ./GEMINI.md
 ```
 
 ### OpenCode
 
 ```bash
-mkdir -p <project>/.opencode/commands
-cp <docs-numbering>/adapters/opencode/commands/*.md <project>/.opencode/commands/
+mkdir -p .opencode/commands
+cp $DOCS_NUM/adapters/opencode/commands/*.md .opencode/commands/
 ```
 Slash commands: `/docs-new`, `/docs-migrate`, `/docs-rollback`
 
 ### GitHub Copilot
 
 ```bash
-mkdir -p <project>/.github
-cp <docs-numbering>/adapters/copilot/.github/copilot-instructions.md <project>/.github/
+mkdir -p .github
+cp $DOCS_NUM/adapters/copilot/.github/copilot-instructions.md .github/
 ```
 
 ## Documentation
