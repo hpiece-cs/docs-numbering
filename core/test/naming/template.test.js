@@ -29,4 +29,34 @@ describe('renderPattern', () => {
       { date: '2026-04-15', slug: 'x' }))
       .toBe('2026-04-15-x.md');
   });
+
+  it('interpolates {filename} preserving original name', () => {
+    expect(renderPattern('{num:03d}-{filename}.md',
+      { num: 1, filename: 'README' }))
+      .toBe('001-README.md');
+  });
+
+  it('preserves dashes inside {filename}', () => {
+    expect(renderPattern('{num:03d}-{filename}.md',
+      { num: 2, filename: 'My-Design-Doc' }))
+      .toBe('002-My-Design-Doc.md');
+  });
+
+  it('preserves Korean in {filename}', () => {
+    expect(renderPattern('{num:03d}-{filename}.md',
+      { num: 3, filename: '설계서' }))
+      .toBe('003-설계서.md');
+  });
+
+  it('omits empty {filename} gracefully', () => {
+    expect(renderPattern('{num:03d}-{method}-{filename}.md',
+      { num: 1, method: 'bmad', filename: '' }))
+      .toBe('001-bmad.md');
+  });
+
+  it('combines {method} and {filename}', () => {
+    expect(renderPattern('{num:03d}-{method}-{filename}.md',
+      { num: 1, method: 'bmad', filename: 'My Doc' }))
+      .toBe('001-bmad-My Doc.md');
+  });
 });

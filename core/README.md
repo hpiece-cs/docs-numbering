@@ -1,6 +1,6 @@
 # @hpiece/docs-numbering
 
-여러 AI CLI(Claude Code, Codex, OpenCode, Gemini CLI, Copilot)에서 생성되는 마크다운 문서를 **일관된 번호 규칙**으로 관리하는 CLI 도구입니다. 한국어 파일명, 여러 개발 방법론 혼합, Git 없는 롤백을 지원합니다.
+마크다운 문서를 **일관된 번호 규칙**으로 관리하는 CLI 도구입니다. 코어 CLI는 에이전트에 구애받지 않으며, Claude Code, Codex, OpenCode, Gemini CLI, GitHub Copilot 어댑터를 제공합니다. 한국어 파일명, 여러 개발 방법론 혼합, Git 없는 롤백을 지원합니다.
 
 ---
 
@@ -161,7 +161,7 @@ docs_dir: "docs/"
 docs_dir: "docs/"
 
 # 파일명 템플릿
-# 변수: {num}, {num:03d}, {slug}, {method}, {phase}, {date}
+# 변수: {num}, {num:03d}, {slug}, {filename}, {method}, {phase}, {date}
 naming_pattern: "{num:03d}-{method}-{phase}-{slug}.md"
 
 numbering:
@@ -350,4 +350,4 @@ A. `.docs-numbering/lock` 파일이 남아있는지 확인. 크래시 후 남은
 
 ## 라이선스
 
-저장소에 명시된 라이선스 (없다면 추후 지정).
+[MIT](../LICENSE)

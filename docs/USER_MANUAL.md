@@ -24,7 +24,7 @@ A CLI tool for managing numbered markdown documentation with methodology-aware n
 - [Presets](#presets) — BMAD, GSD, WDS, Superpowers
 - [Korean Title Support](#korean-title-support)
 - [Internationalization](#internationalization)
-- [Claude Code Integration](#claude-code-integration)
+- [Agent Integration](#agent-integration) — Claude Code, Codex, OpenCode, Gemini CLI, Copilot
 - [Troubleshooting](#troubleshooting)
 - [Project Structure](#project-structure)
 
@@ -251,11 +251,14 @@ Template string that determines the generated filename. Uses `{variable}` or `{v
 | `{method}` | none | Methodology name | `bmad`, `gsd` |
 | `{phase}` | none | Phase name | `prd`, `plan-phase` |
 | `{slug}` | none | Slugified title | `user-auth`, `api-design` |
+| `{filename}` | none | Original filename (preserved as-is) | `README`, `My-Design-Doc` |
 | `{date}` | none | Date (YYYY-MM-DD) | `2026-04-15` |
+
+> **`{slug}` vs `{filename}`**: `{slug}` transforms the title (lowercase, spaces→dashes, truncation). `{filename}` preserves the original filename exactly as-is, including case, spaces, and dashes. Use `{slug}` for `new`, `{filename}` for `migrate` when you want to keep existing filenames untouched.
 
 **Rendering rules:**
 - Empty or omitted variables are removed along with their preceding `-`
-- Consecutive dashes are collapsed to a single `-`
+- Consecutive dashes are collapsed to a single `-` (dashes inside `{filename}` are protected)
 - Leading dashes are removed
 
 ```yaml
@@ -266,6 +269,16 @@ naming_pattern: "{num:03d}-{method}-{phase}-{slug}.md"
 # Number + slug only
 naming_pattern: "{num:03d}-{slug}.md"
 # → 001-user-authentication.md
+
+# Preserve original filename (number only)
+naming_pattern: "{num:03d}-{filename}.md"
+# migrate: README.md → 001-README.md
+# migrate: My-Design-Doc.md → 002-My-Design-Doc.md
+# migrate: 설계서.md → 003-설계서.md
+
+# Preserve original filename with method
+naming_pattern: "{num:03d}-{method}-{filename}.md"
+# migrate: README.md → 001-bmad-README.md
 
 # Date prefix
 naming_pattern: "{date}-{num:03d}-{slug}.md"
@@ -601,10 +614,16 @@ Template variables:
 | `{num:03d}` | `001` | Zero-padded number |
 | `{method}` | `bmad` | Methodology name |
 | `{phase}` | `prd` | Phase name |
-| `{slug}` | `user-auth` | Title slug |
+| `{slug}` | `user-auth` | Title slug (transformed) |
+| `{filename}` | `README` | Original filename (preserved as-is) |
 | `{date}` | `2026-04-15` | Date |
 
 Empty variables are omitted along with their preceding `-`.
+
+**`{slug}` vs `{filename}`:**
+- `{slug}`: Transforms the input (lowercase, spaces to dashes, truncation). Best for `new` command.
+- `{filename}`: Preserves the original filename exactly — case, spaces, dashes all kept. Best for `migrate` when you want to keep existing names.
+- When using `{filename}` with the `new` command, it falls back to the slug value.
 
 ---
 
@@ -675,12 +694,13 @@ docs-numbering rollback --last --locale=en
 
 ---
 
-## Claude Code Integration
+## Agent Integration
 
-### Setup
+The core CLI is agent-agnostic. Adapters are provided for each supported agent.
+
+### Claude Code
 
 ```bash
-# Link skill and commands to your project
 mkdir -p <project>/.claude/skills <project>/.claude/commands
 ln -s <docs-numbering>/adapters/claude-code/skills/docs-numbering <project>/.claude/skills/docs-numbering
 ln -s <docs-numbering>/adapters/claude-code/commands/docs-new.md <project>/.claude/commands/docs-new.md
@@ -688,20 +708,52 @@ ln -s <docs-numbering>/adapters/claude-code/commands/docs-migrate.md <project>/.
 ln -s <docs-numbering>/adapters/claude-code/commands/docs-rollback.md <project>/.claude/commands/docs-rollback.md
 ```
 
-### Slash Commands
+- Slash commands: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Skill auto-trigger: activates on "save this as a doc", "organize docs", "번호 매겨줘", etc.
 
-| Command | Description |
-|---------|-------------|
-| `/docs-new` | Create a new numbered document |
-| `/docs-migrate` | Migrate existing docs to numbered convention |
-| `/docs-rollback` | Undo the last docs-numbering operation |
+### Codex / Cursor / Windsurf (AGENTS.md)
 
-### Skill Auto-Trigger
+```bash
+cp <docs-numbering>/adapters/agents-md/AGENTS.md <project>/AGENTS.md
+```
 
-The `docs-numbering` skill activates when you:
-- Ask to save/create a markdown doc
-- Complete a methodology phase producing a deliverable
-- Ask to organize or number docs
+Uses the [AGENTS.md](https://agents.md/) open standard supported by Codex, Cursor, Windsurf, and other tools. The agent reads project-level instructions and triggers `docs-numbering` CLI on natural language requests like "create a doc" or "번호 매겨줘".
+
+### OpenCode
+
+```bash
+mkdir -p <project>/.opencode/commands
+cp <docs-numbering>/adapters/opencode/commands/*.md <project>/.opencode/commands/
+```
+
+- Slash commands: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+
+### Gemini CLI
+
+```bash
+cp <docs-numbering>/adapters/gemini/GEMINI.md <project>/GEMINI.md
+```
+
+Gemini CLI reads `GEMINI.md` from project root. Triggers on natural language requests.
+
+### GitHub Copilot
+
+```bash
+mkdir -p <project>/.github
+cp <docs-numbering>/adapters/copilot/.github/copilot-instructions.md <project>/.github/
+```
+
+Copilot reads `.github/copilot-instructions.md` for project-level custom instructions. Triggers on natural language requests.
+
+### Adapter Summary
+
+| Agent | Adapter | Slash Commands | Trigger |
+|-------|---------|:-:|---------|
+| Claude Code | SKILL.md + commands | `/docs-new`, `/docs-migrate`, `/docs-rollback` | auto + manual |
+| OpenCode | commands | `/docs-new`, `/docs-migrate`, `/docs-rollback` | manual |
+| Codex / Cursor / Windsurf | AGENTS.md | - | natural language |
+| Gemini CLI | GEMINI.md | - | natural language |
+| GitHub Copilot | copilot-instructions.md | - | natural language |
 
 ---
 

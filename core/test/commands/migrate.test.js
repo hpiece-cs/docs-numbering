@@ -51,4 +51,65 @@ describe('migrate', () => {
     const entries = readdirSync(join(p.dir, '.docs-numbering', 'history'));
     expect(entries.length).toBe(1);
   });
+
+  const filenameCfg = `
+docs_dir: "docs/"
+naming_pattern: "{num:03d}-{filename}.md"
+numbering:
+  presets: [bmad]
+`;
+
+  it('preserves original filename with {filename} pattern', async () => {
+    const p = makeTmpProject({
+      '.docs-numbering.yaml': filenameCfg,
+      'docs/README.md': '', 'docs/Design Doc.md': ''
+    });
+    cleanups.push(p.cleanup);
+    await runMigrate({ cwd: p.dir, homeDir: p.dir,
+      flags: { order: 'alpha', apply: true } });
+    const files = readdirSync(join(p.dir, 'docs')).sort();
+    expect(files).toEqual(['001-Design Doc.md', '002-README.md']);
+  });
+
+  it('strips leading numbers from original filename', async () => {
+    const p = makeTmpProject({
+      '.docs-numbering.yaml': filenameCfg,
+      'docs/01-old-doc.md': ''
+    });
+    cleanups.push(p.cleanup);
+    await runMigrate({ cwd: p.dir, homeDir: p.dir,
+      flags: { order: 'alpha', apply: true } });
+    const files = readdirSync(join(p.dir, 'docs'));
+    expect(files).toEqual(['001-old-doc.md']);
+  });
+
+  it('preserves Korean filename with {filename} pattern', async () => {
+    const p = makeTmpProject({
+      '.docs-numbering.yaml': filenameCfg,
+      'docs/설계서.md': ''
+    });
+    cleanups.push(p.cleanup);
+    await runMigrate({ cwd: p.dir, homeDir: p.dir,
+      flags: { order: 'alpha', apply: true } });
+    const files = readdirSync(join(p.dir, 'docs'));
+    expect(files).toEqual(['001-설계서.md']);
+  });
+
+  it('combines method and {filename}', async () => {
+    const methodFilenameCfg = `
+docs_dir: "docs/"
+naming_pattern: "{num:03d}-{method}-{filename}.md"
+numbering:
+  presets: [bmad]
+`;
+    const p = makeTmpProject({
+      '.docs-numbering.yaml': methodFilenameCfg,
+      'docs/My-Doc.md': ''
+    });
+    cleanups.push(p.cleanup);
+    const r = await runMigrate({ cwd: p.dir, homeDir: p.dir,
+      flags: { order: 'alpha' } });
+    // method is empty during migrate, so pattern collapses to 001-My-Doc.md
+    expect(r.plan[0].to).toBe('docs/001-My-Doc.md');
+  });
 });

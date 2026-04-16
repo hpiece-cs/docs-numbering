@@ -2,6 +2,25 @@
   "name": "@hpiece/docs-numbering",
   "version": "0.1.0",
   "description": "CLI-neutral numbered markdown documentation manager for AI coding CLIs",
+  "author": "hpiece",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hpiece/docs-numbering.git",
+    "directory": "core"
+  },
+  "keywords": [
+    "docs",
+    "numbering",
+    "markdown",
+    "documentation",
+    "ai-agent",
+    "claude-code",
+    "codex",
+    "naming-convention",
+    "korean",
+    "i18n"
+  ],
   "type": "module",
   "bin": {
     "docs-numbering": "bin/docs-numbering.js",

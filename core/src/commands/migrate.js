@@ -26,6 +26,10 @@ function inferSlug(name, cfg) {
   return makeSlug(stripped.replace(/[-_]+/g, ' '), cfg.slug);
 }
 
+function inferFilename(name) {
+  return name.replace(/\.md$/, '').replace(/^\d+[-_]?/, '');
+}
+
 export async function runMigrate({ cwd, homeDir, flags = {} }) {
   const cfg = loadConfig({ cwd, homeDir, flags });
   const dir = resolveDocsDir(cfg, cwd);
@@ -38,8 +42,9 @@ export async function runMigrate({ cwd, homeDir, flags = {} }) {
   const plan = sorted.map((name, idx) => {
     const num = start + idx;
     const slug = inferSlug(name, cfg);
+    const filename = inferFilename(name);
     const newName = renderPattern(cfg.naming_pattern, {
-      num, slug, method: '', phase: '',
+      num, slug, method: '', phase: '', filename,
       date: new Date().toISOString().slice(0, 10)
     });
     return { from: join(cfg.docs_dir.replace(/\/$/, ''), name).split(/[\\\/]/).join('/'),

@@ -41,7 +41,7 @@ export async function runNew({ cwd, homeDir, flags = {}, args = {} }) {
 
   const slug = makeSlug(args.title, cfg.slug);
   const filename = renderPattern(cfg.naming_pattern, {
-    num, slug, method, phase,
+    num, slug, method, phase, filename: slug,
     date: flags.date || new Date().toISOString().slice(0, 10)
   });
 
