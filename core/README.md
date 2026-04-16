@@ -25,7 +25,7 @@ docnum <command>
 
 ### 방법 3: 로컬 저장소에서 직접 실행 (npm 배포 전)
 ```bash
-git clone <repo>
+git clone https://github.com/hpiece-cs/docs-numbering.git
 cd docs-numbering/core
 npm install
 node bin/docs-numbering.js <command>
@@ -237,22 +237,65 @@ slug:
 
 ---
 
-## Claude Code Skill로 사용
+## 에이전트 연동
 
-저장소의 `adapters/claude-code/` 아래 파일을 복사:
+### 공통 전제조건
+
+1. `docs-numbering` CLI가 PATH에 있어야 합니다 (위 설치 참고)
+2. 프로젝트에서 `docs-numbering init`으로 `.docs-numbering.yaml` 생성
+3. 아래에서 사용하는 에이전트에 맞는 어댑터 파일을 복사 또는 심볼릭 링크
+
+> **심볼릭 링크 vs 복사**: 심볼릭 링크(`ln -s`)를 사용하면 소스 업데이트가 자동 반영됩니다. 독립 프로젝트라면 `cp`로 복사하세요.
+
+### Claude Code
 
 ```bash
-# Skill 설치
-cp -r adapters/claude-code/skills/docs-numbering ~/.claude/skills/
-
-# (선택) 슬래시 커맨드 설치
-cp adapters/claude-code/commands/*.md ~/.claude/commands/
+mkdir -p <프로젝트>/.claude/skills <프로젝트>/.claude/commands
+ln -s <docs-numbering>/adapters/claude-code/skills/docs-numbering <프로젝트>/.claude/skills/docs-numbering
+ln -s <docs-numbering>/adapters/claude-code/commands/*.md <프로젝트>/.claude/commands/
 ```
+- 슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 스킬 자동 트리거: "문서 저장해줘", "번호 매겨줘", "정리해줘" 등
 
-설치 후 Claude Code에서:
-- 자연어로 "이 내용을 문서로 저장해줘" → Skill이 자동 활성화
-- `/docs-new "제목"` → 슬래시 커맨드로 직접 호출
-- `/docs-migrate`, `/docs-rollback`
+### Codex / Cursor / Windsurf (AGENTS.md)
+
+```bash
+cp <docs-numbering>/adapters/agents-md/AGENTS.md <프로젝트>/AGENTS.md
+```
+자연어 트리거: "create doc", "organize docs", "번호 매겨줘"
+
+### OpenCode
+
+```bash
+mkdir -p <프로젝트>/.opencode/commands
+cp <docs-numbering>/adapters/opencode/commands/*.md <프로젝트>/.opencode/commands/
+```
+슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+
+### Gemini CLI
+
+```bash
+cp <docs-numbering>/adapters/gemini/GEMINI.md <프로젝트>/GEMINI.md
+```
+자연어 트리거
+
+### GitHub Copilot
+
+```bash
+mkdir -p <프로젝트>/.github
+cp <docs-numbering>/adapters/copilot/.github/copilot-instructions.md <프로젝트>/.github/
+```
+자연어 트리거
+
+### 어댑터 요약
+
+| 에이전트 | 어댑터 | 슬래시 커맨드 | 트리거 |
+|----------|--------|:-:|--------|
+| Claude Code | SKILL.md + commands | `/docs-new`, `/docs-migrate`, `/docs-rollback` | 자동 + 수동 |
+| OpenCode | commands | `/docs-new`, `/docs-migrate`, `/docs-rollback` | 수동 |
+| Codex / Cursor / Windsurf | AGENTS.md | - | 자연어 |
+| Gemini CLI | GEMINI.md | - | 자연어 |
+| GitHub Copilot | copilot-instructions.md | - | 자연어 |
 
 ---
 
