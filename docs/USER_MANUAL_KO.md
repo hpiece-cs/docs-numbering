@@ -172,10 +172,12 @@ docs-numbering rollback --last --apply # 실행
 ### `install` — 어댑터 자동 설치
 
 ```bash
-docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--dry-run]
+docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--no-init] [--dry-run]
 ```
 
 각 AI 에이전트별 어댑터 파일(슬래시 커맨드, 스킬, 지시문)을 프로젝트에 자동으로 설치합니다. 수동 `ln -s`나 `cp` 없이 한 번에 끝납니다.
+
+**자동 초기화:** `.docs-numbering.yaml`이 없으면 `install`이 자동으로 생성합니다 — 별도의 `docs-numbering init`을 먼저 실행할 필요가 없습니다. 비활성화하려면 `--no-init`을 쓰거나 `--dry-run`을 사용하세요(후자도 init을 건너뜁니다).
 
 | 플래그 | 설명 |
 |--------|------|
@@ -183,7 +185,8 @@ docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--fo
 | `--all` | 지원하는 모든 어댑터 설치 |
 | `--mode <모드>` | 설치 방식 (기본값은 에이전트별로 다름): `link`(심볼릭 링크), `copy`(복사), `merge`(블록 병합) |
 | `--force` | 기존 파일이 있어도 덮어쓰기 |
-| `--dry-run` | 실제 파일을 만들지 않고 계획만 표시 |
+| `--no-init` | `.docs-numbering.yaml`이 없어도 자동 생성하지 않음 |
+| `--dry-run` | 실제 파일을 만들지 않고 계획만 표시 (`--no-init`을 내포) |
 
 플래그가 하나도 없으면 프로젝트를 스캔해 **감지된 에이전트**에 설치합니다. 아무것도 감지되지 않으면 지원 목록만 보여줍니다.
 
@@ -800,11 +803,14 @@ docs-numbering rollback --last --locale=en
 
 ```bash
 cd my-project
-docs-numbering init              # .docs-numbering.yaml 생성
-docs-numbering install           # 감지된 에이전트에 어댑터 자동 설치
+docs-numbering install           # 자동 init + 자동 감지 + 설치
 ```
 
+한 명령으로 모든 단계가 끝납니다: `.docs-numbering.yaml`이 없으면 `install`이 먼저 생성한 뒤 어댑터를 배치합니다. `docs-numbering init`을 별도로 실행하는 건 설정 파일만 만들고 어댑터는 필요 없을 때나 `--global` 옵션을 쓸 때에 한합니다.
+
 `install`이 현재 프로젝트를 스캔해 `.claude/`, `.opencode/`, `.github/`, `AGENTS.md`, `GEMINI.md` 등을 확인하고 해당 어댑터를 알맞은 방식(심볼릭 링크 / 복사 / 블록 병합)으로 배치합니다.
+
+**에이전트 채팅 안에서** (Claude Code, OpenCode, Codex 등): 에이전트에게 "프로젝트 디렉토리에서 `docs-numbering install` 실행해줘"라고 요청하면 됩니다. 터미널로 전환할 필요 없이 에이전트가 Bash/셸 도구로 바로 실행합니다. 이미 에이전트 세션 안에 있을 때의 최초 설치 권장 방식입니다.
 
 특정 에이전트만 원할 때:
 ```bash

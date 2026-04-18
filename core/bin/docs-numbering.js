@@ -123,6 +123,7 @@ program.command('install')
   .option('--all', 'install for all adapters')
   .option('--mode <mode>', 'link | copy | merge (auto when omitted)')
   .option('--force', 'overwrite existing files')
+  .option('--no-init', 'skip auto-creating .docs-numbering.yaml when missing')
   .option('--dry-run')
   .action(async (opts) => {
     const g = program.opts();

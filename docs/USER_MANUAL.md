@@ -172,10 +172,12 @@ docs-numbering rollback --last --apply # execute
 ### `install` — Auto-Install Adapters
 
 ```bash
-docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--dry-run]
+docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--no-init] [--dry-run]
 ```
 
 Installs adapter files (slash commands, skills, instructions) for a given AI agent into the current project. Replaces manual `ln -s` / `cp` steps.
+
+**Auto-init:** If `.docs-numbering.yaml` does not exist in the project, `install` creates it automatically — you no longer need a separate `docs-numbering init` step. Use `--no-init` to opt out, or `--dry-run` (which also skips init).
 
 | Flag | Description |
 |------|-------------|
@@ -183,7 +185,8 @@ Installs adapter files (slash commands, skills, instructions) for a given AI age
 | `--all` | Install adapters for every supported agent |
 | `--mode <mode>` | Install method (agent-specific default): `link` (symlink), `copy`, `merge` (block insertion) |
 | `--force` | Overwrite existing files |
-| `--dry-run` | Show the plan without writing anything |
+| `--no-init` | Skip auto-creating `.docs-numbering.yaml` when missing |
+| `--dry-run` | Show the plan without writing anything (implies `--no-init`) |
 
 If no flags are passed, `install` scans the project and installs adapters for **detected** agents only. If nothing is detected, it prints the list of supported adapters.
 
@@ -791,11 +794,14 @@ The core CLI is agent-agnostic. Adapter installation is done entirely through th
 
 ```bash
 cd my-project
-docs-numbering init              # creates .docs-numbering.yaml
-docs-numbering install           # auto-detect and install adapters
+docs-numbering install           # auto-init + auto-detect + install
 ```
 
+A single command covers everything: if `.docs-numbering.yaml` is missing, `install` creates it before deploying adapters. Run `docs-numbering init` explicitly only when you want the config without adapters, or when using `--global`.
+
 `install` scans the current project for `.claude/`, `.opencode/`, `.github/`, `AGENTS.md`, `GEMINI.md`, etc., and deploys the matching adapters using the appropriate method (symlink / copy / block merge).
+
+**From within an agent chat** (Claude Code, OpenCode, Codex, etc.): just ask the agent to run `docs-numbering install` in the project directory. No terminal switch required — the agent executes it via its Bash/shell tool. This is the recommended first-time setup flow when you're already inside an agent session.
 
 Target a specific agent:
 ```bash

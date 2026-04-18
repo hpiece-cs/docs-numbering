@@ -129,9 +129,9 @@ slug:
 
 ```bash
 cd my-project
-docs-numbering init                       # .docs-numbering.yaml 생성
 
-# 프로젝트에서 에이전트를 자동 감지해 어댑터 설치
+# 에이전트를 자동 감지해 어댑터 설치.
+# .docs-numbering.yaml이 없으면 자동으로 생성되므로 별도 `init`이 필요 없습니다.
 docs-numbering install
 
 # 특정 에이전트 지정
@@ -139,11 +139,14 @@ docs-numbering install --agent=claude-code
 docs-numbering install --agent=codex --force
 docs-numbering install --all              # 지원 어댑터 모두 설치
 docs-numbering install --dry-run          # 실제 쓰기 없이 미리보기
+docs-numbering install --no-init          # 설정 파일 자동 생성 비활성화
 
 # 제거
 docs-numbering uninstall --agent=claude-code
 docs-numbering uninstall --all
 ```
+
+> Claude Code 등 에이전트 채팅 안에서도 "docs-numbering install 실행해줘"라고 하면 터미널로 나가지 않고 바로 설치됩니다.
 
 ### 지원 에이전트
 

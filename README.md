@@ -129,9 +129,9 @@ Adapters are installed with the built-in `install` command — no manual `ln -s`
 
 ```bash
 cd my-project
-docs-numbering init                       # creates .docs-numbering.yaml
 
-# Auto-detect agents in the project and install adapters
+# Auto-detect agents and install adapters.
+# Creates .docs-numbering.yaml automatically if missing — no separate `init` needed.
 docs-numbering install
 
 # Or target a specific agent
@@ -139,11 +139,14 @@ docs-numbering install --agent=claude-code
 docs-numbering install --agent=codex --force
 docs-numbering install --all              # install every supported adapter
 docs-numbering install --dry-run          # preview without writing
+docs-numbering install --no-init          # don't auto-create config
 
 # Remove
 docs-numbering uninstall --agent=claude-code
 docs-numbering uninstall --all
 ```
+
+> Inside Claude Code or other agent chats, ask the agent to run `docs-numbering install` in your project — no terminal switch required.
 
 ### Supported agents
 

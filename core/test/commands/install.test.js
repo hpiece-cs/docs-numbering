@@ -142,4 +142,37 @@ describe('init integration', () => {
     const r = await runInit({ cwd: p.dir, homeDir: p.dir, flags: {} });
     expect(r.detected.map((d) => d.name)).toContain('claude-code');
   });
+
+  it('auto-creates .docs-numbering.yaml when install runs without config', async () => {
+    const p = mkProject();
+    mkdirSync(join(p.dir, '.claude'), { recursive: true });
+    const cfg = join(p.dir, '.docs-numbering.yaml');
+    expect(existsSync(cfg)).toBe(false);
+    const r = await runInstall({ cwd: p.dir, homeDir: p.dir, flags: { agent: 'claude-code' } });
+    expect(existsSync(cfg)).toBe(true);
+    expect(r.initialized).toBe(cfg);
+  });
+
+  it('leaves existing config untouched', async () => {
+    const p = mkProject({ '.docs-numbering.yaml': 'custom: true\n' });
+    const r = await runInstall({ cwd: p.dir, homeDir: p.dir, flags: { agent: 'claude-code' } });
+    expect(r.initialized).toBeNull();
+    expect(readFileSync(join(p.dir, '.docs-numbering.yaml'), 'utf8')).toBe('custom: true\n');
+  });
+
+  it('skips auto-init with --no-init', async () => {
+    const p = mkProject();
+    mkdirSync(join(p.dir, '.claude'), { recursive: true });
+    const r = await runInstall({ cwd: p.dir, homeDir: p.dir, flags: { agent: 'claude-code', noInit: true } });
+    expect(r.initialized).toBeNull();
+    expect(existsSync(join(p.dir, '.docs-numbering.yaml'))).toBe(false);
+  });
+
+  it('skips auto-init on dry-run', async () => {
+    const p = mkProject();
+    mkdirSync(join(p.dir, '.claude'), { recursive: true });
+    const r = await runInstall({ cwd: p.dir, homeDir: p.dir, flags: { agent: 'claude-code', dryRun: true } });
+    expect(r.initialized).toBeNull();
+    expect(existsSync(join(p.dir, '.docs-numbering.yaml'))).toBe(false);
+  });
 });
