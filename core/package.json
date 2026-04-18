@@ -35,7 +35,9 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "postinstall": "node ./bin/docs-numbering.js install --user --agent=claude-code --no-init 2>&1 || true",
+    "preuninstall": "node ./bin/docs-numbering.js uninstall --user --agent=claude-code 2>&1 || true"
   },
   "dependencies": {
     "commander": "^12.1.0",
