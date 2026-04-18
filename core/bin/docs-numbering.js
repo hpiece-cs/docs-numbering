@@ -11,6 +11,7 @@ import { runPhases } from '../src/commands/phases.js';
 import { runValidate } from '../src/commands/validate.js';
 import { runHistory } from '../src/commands/history.js';
 import { runRollback } from '../src/commands/rollback.js';
+import { runInstall, runUninstall } from '../src/commands/install.js';
 import { t, setLocale, detectLocale } from '../src/i18n/index.js';
 
 setLocale(detectLocale());
@@ -114,6 +115,28 @@ program.command('rollback [id]')
     const flags = { ...g, ...opts };
     if (id && !flags.to) flags.to = id;
     const r = await runRollback({ ...ctx(), flags });
+    output(r, g);
+  });
+
+program.command('install')
+  .option('--agent <name>', 'claude-code | opencode | codex | gemini | copilot')
+  .option('--all', 'install for all adapters')
+  .option('--mode <mode>', 'link | copy | merge (auto when omitted)')
+  .option('--force', 'overwrite existing files')
+  .option('--dry-run')
+  .action(async (opts) => {
+    const g = program.opts();
+    const r = await runInstall({ ...ctx(), flags: { ...g, ...opts } });
+    output(r, g);
+  });
+
+program.command('uninstall')
+  .option('--agent <name>')
+  .option('--all')
+  .option('--dry-run')
+  .action(async (opts) => {
+    const g = program.opts();
+    const r = await runUninstall({ ...ctx(), flags: { ...g, ...opts } });
     output(r, g);
   });
 

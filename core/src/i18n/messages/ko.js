@@ -10,6 +10,10 @@ export default {
   'errors.unknown_phase': '알 수 없는 단계입니다: {phase}',
   'errors.unknown_preset': '알 수 없는 프리셋입니다: {name}',
   'errors.file_exists': '파일이 이미 존재합니다: {path}',
+  'errors.unknown_adapter': '알 수 없는 어댑터입니다: {name}',
+  'errors.unknown_mode': '알 수 없는 설치 모드입니다: {mode}',
   'warnings.phase_not_in_presets': "경고: '{phase}' 단계가 활성화된 프리셋에 없습니다",
-  'cli.error_prefix': '오류: {message}'
+  'cli.error_prefix': '오류: {message}',
+  'install.exists_hint': '{path}에 이미 존재합니다 (덮어쓰려면 --force 사용)',
+  'install.no_detection': '이 프로젝트에서 지원되는 에이전트를 찾지 못했습니다. --agent <이름> 또는 --all을 사용하세요.'
 };

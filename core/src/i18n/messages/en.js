@@ -10,6 +10,10 @@ export default {
   'errors.unknown_phase': 'unknown phase: {phase}',
   'errors.unknown_preset': 'unknown preset: {name}',
   'errors.file_exists': 'file exists: {path}',
+  'errors.unknown_adapter': 'unknown adapter: {name}',
+  'errors.unknown_mode': 'unknown install mode: {mode}',
   'warnings.phase_not_in_presets': "warn: phase '{phase}' not in enabled presets",
-  'cli.error_prefix': 'error: {message}'
+  'cli.error_prefix': 'error: {message}',
+  'install.exists_hint': 'exists at {path} (use --force to overwrite)',
+  'install.no_detection': 'no supported agent detected in this project. Use --agent <name> or --all.'
 };
