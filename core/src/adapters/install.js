@@ -14,16 +14,23 @@ import {
 } from 'node:fs';
 import { join, dirname, relative, resolve } from 'node:path';
 import { t } from '../i18n/index.js';
-import { getAdapter, getAdaptersDir, MERGE_START, MERGE_END } from './registry.js';
+import {
+  getAdapter,
+  getAdaptersDir,
+  getAdapterItems,
+  getAdapterDefaultMode,
+  MERGE_START,
+  MERGE_END
+} from './registry.js';
 
-function resolveMode(adapter, requested) {
-  if (!requested || requested === 'auto') return adapter.defaultMode;
+function resolveMode(defaultMode, requested) {
+  if (!requested || requested === 'auto') return defaultMode;
   return requested;
 }
 
-function expandItems(adapter, adaptersDir) {
+function expandItems(items, adaptersDir) {
   const expanded = [];
-  for (const item of adapter.items) {
+  for (const item of items) {
     if (item.type === 'glob') {
       const dir = join(adaptersDir, item.fromDir);
       if (!existsSync(dir)) continue;
@@ -118,12 +125,15 @@ function sameRealPath(a, b) {
   }
 }
 
-export async function installAdapter({ cwd, baseDir, agent, mode, force, dryRun }) {
+export async function installAdapter({ cwd, baseDir, agent, mode, force, dryRun, scope }) {
   const adapter = getAdapter(agent);
   if (!adapter) throw new Error(t('errors.unknown_adapter', { name: agent }));
+  if (scope === 'user' && adapter.userScope === false) {
+    return { adapter: agent, scope, skipped: 'user-scope-unsupported', actions: [] };
+  }
   const adaptersDir = getAdaptersDir();
-  const effectiveMode = resolveMode(adapter, mode);
-  const items = expandItems(adapter, adaptersDir);
+  const effectiveMode = resolveMode(getAdapterDefaultMode(adapter, scope), mode);
+  const items = expandItems(getAdapterItems(adapter, scope), adaptersDir);
   const installBase = baseDir || cwd;
   const actions = [];
 
@@ -178,11 +188,14 @@ export async function installAdapter({ cwd, baseDir, agent, mode, force, dryRun 
   return { adapter: agent, mode: effectiveMode, actions };
 }
 
-export async function uninstallAdapter({ cwd, baseDir, agent, dryRun }) {
+export async function uninstallAdapter({ cwd, baseDir, agent, dryRun, scope }) {
   const adapter = getAdapter(agent);
   if (!adapter) throw new Error(t('errors.unknown_adapter', { name: agent }));
+  if (scope === 'user' && adapter.userScope === false) {
+    return { adapter: agent, scope, skipped: 'user-scope-unsupported', actions: [] };
+  }
   const adaptersDir = getAdaptersDir();
-  const items = expandItems(adapter, adaptersDir);
+  const items = expandItems(getAdapterItems(adapter, scope), adaptersDir);
   const installBase = baseDir || cwd;
   const actions = [];
 

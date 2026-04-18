@@ -146,21 +146,26 @@ docs-numbering uninstall --agent=claude-code
 docs-numbering uninstall --all
 ```
 
-### 사용자 단위 1회 설치 (Claude Code 사용자 권장)
+### 사용자 단위 설치 — 모든 프로젝트에서 `/docs-install`
 
-Claude Code 어댑터를 **홈 디렉토리에 한 번만** 설치해두면, 이후 어떤 프로젝트에서도 채팅 안에서 `/docs-install`로 부트스트랩할 수 있습니다:
+`npm install -g @hpiece/docs-numbering`로 전역 설치하면 postinstall 훅이 자동으로 사용자 범위를 지원하는 에이전트들에 슬래시 커맨드를 배치합니다. 이후 어떤 프로젝트를 열든 채팅 안에서 `/docs-install`을 입력하면 해당 프로젝트가 부트스트랩됩니다.
 
 ```bash
-docs-numbering install --user --agent=claude-code
+# 'npm install -g' 시 자동 수행. 수동 실행도 가능:
+docs-numbering install --user --all
 ```
 
-스킬과 슬래시 커맨드가 `~/.claude/`에 배치되어 모든 프로젝트에서 사용 가능해집니다. 그 다음 아무 프로젝트에서 Claude Code를 열고:
+**모든 프로젝트에서 사용 가능한 슬래시 커맨드** (사용자 범위):
 
-```
-/docs-install
-```
+| 에이전트 | 설치 위치 | 활성화되는 커맨드 |
+|----------|----------|-----------------|
+| Claude Code | `~/.claude/commands/` + `~/.claude/skills/docs-numbering` | `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` + 자동 트리거 스킬 |
+| OpenCode | `~/.opencode/commands/` | `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` |
+| Gemini CLI | `~/.gemini/commands/*.toml` | `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` |
+| Codex / Cursor / Windsurf | — | **자연어**만 지원 (슬래시 커맨드 개념 없음). "docs-numbering install", "번호 매겨줘" 등 |
+| GitHub Copilot | — | **자연어**만 지원 |
 
-현재 프로젝트에서 `docs-numbering install`이 실행되어 `.docs-numbering.yaml` 생성 + 프로젝트 단위 어댑터 배치가 이루어집니다 — 터미널로 나갈 필요가 없습니다. `/docs-new`, `/docs-migrate`, `/docs-rollback`도 함께 활성화됩니다.
+`/docs-install`은 현재 프로젝트에서 `docs-numbering install`을 실행해 `.docs-numbering.yaml` 생성과 프로젝트 단위 어댑터 배치를 끝냅니다 — 채팅을 떠날 필요가 없습니다.
 
 ### 지원 에이전트
 

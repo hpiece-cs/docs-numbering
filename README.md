@@ -146,21 +146,26 @@ docs-numbering uninstall --agent=claude-code
 docs-numbering uninstall --all
 ```
 
-### One-time user-scope install (recommended for Claude Code users)
+### User-scope install — `/docs-install` in every project
 
-Install the Claude Code adapter **once** into your home directory, then bootstrap any project from inside the chat with `/docs-install`:
+Installing the npm package globally (`npm install -g @hpiece/docs-numbering`) also runs a postinstall hook that deploys slash commands to your home directory for every supported agent that has user-scope semantics. Inside the chat of any project you open, `/docs-install` bootstraps the project.
 
 ```bash
-docs-numbering install --user --agent=claude-code
+# Installed automatically by 'npm install -g', or manually:
+docs-numbering install --user --all
 ```
 
-This places the skill and slash commands under `~/.claude/`, making them available in every project. After that, open Claude Code in any project and type:
+**Slash commands available in every project** (user-scope):
 
-```
-/docs-install
-```
+| Agent | Location | Available commands |
+|-------|----------|-------------------|
+| Claude Code | `~/.claude/commands/` + `~/.claude/skills/docs-numbering` | `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` + auto-trigger skill |
+| OpenCode | `~/.opencode/commands/` | `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` |
+| Gemini CLI | `~/.gemini/commands/*.toml` | `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` |
+| Codex / Cursor / Windsurf | — | **Natural language** (no slash command concept); use "docs-numbering install", "번호 매겨줘" etc. |
+| GitHub Copilot | — | **Natural language** only |
 
-It runs `docs-numbering install` in the current project — creating `.docs-numbering.yaml` and deploying project-level adapters — without leaving the chat. Also available: `/docs-new`, `/docs-migrate`, `/docs-rollback`.
+`/docs-install` runs `docs-numbering install` in the current project — creating `.docs-numbering.yaml` and deploying project-level adapters — without leaving the chat.
 
 ### Supported agents
 

@@ -26,6 +26,7 @@ export const ADAPTERS = {
     label: 'Claude Code',
     defaultMode: 'link',
     detect: ['.claude'],
+    userScope: true,
     items: [
       {
         type: 'dir',
@@ -45,6 +46,7 @@ export const ADAPTERS = {
     label: 'OpenCode',
     defaultMode: 'copy',
     detect: ['.opencode'],
+    userScope: true,
     items: [
       {
         type: 'glob',
@@ -59,6 +61,7 @@ export const ADAPTERS = {
     label: 'Codex / Cursor / Windsurf (AGENTS.md)',
     defaultMode: 'merge',
     detect: ['.cursor', '.codex', '.windsurf', 'AGENTS.md'],
+    userScope: false,
     items: [
       {
         type: 'merge',
@@ -72,11 +75,21 @@ export const ADAPTERS = {
     label: 'Gemini CLI',
     defaultMode: 'merge',
     detect: ['.gemini', 'GEMINI.md'],
+    userScope: true,
+    userDefaultMode: 'copy',
     items: [
       {
         type: 'merge',
         from: 'gemini/GEMINI.md',
         to: 'GEMINI.md'
+      }
+    ],
+    userItems: [
+      {
+        type: 'glob',
+        fromDir: 'gemini/commands',
+        pattern: /\.toml$/,
+        toDir: '.gemini/commands'
       }
     ]
   },
@@ -85,6 +98,7 @@ export const ADAPTERS = {
     label: 'GitHub Copilot',
     defaultMode: 'merge',
     detect: ['.github'],
+    userScope: false,
     items: [
       {
         type: 'merge',
@@ -99,6 +113,20 @@ export function listAdapters() {
   return Object.values(ADAPTERS);
 }
 
+export function listUserAdapters() {
+  return Object.values(ADAPTERS).filter((a) => a.userScope !== false);
+}
+
 export function getAdapter(name) {
   return ADAPTERS[name] || null;
+}
+
+export function getAdapterItems(adapter, scope) {
+  if (scope === 'user' && adapter.userItems) return adapter.userItems;
+  return adapter.items;
+}
+
+export function getAdapterDefaultMode(adapter, scope) {
+  if (scope === 'user' && adapter.userDefaultMode) return adapter.userDefaultMode;
+  return adapter.defaultMode;
 }

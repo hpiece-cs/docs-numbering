@@ -234,4 +234,62 @@ describe('install: --user scope', () => {
     try { lstatSync(join(home.dir, '.claude/skills/docs-numbering')); present = true; } catch {}
     expect(present).toBe(false);
   });
+
+  it('installs opencode docs-install command at user scope', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    mkdirSync(join(home.dir, '.opencode'), { recursive: true });
+    await runInstall({
+      cwd: project.dir, homeDir: home.dir,
+      flags: { user: true, agent: 'opencode' }
+    });
+    expect(existsSync(join(home.dir, '.opencode/commands/docs-install.md'))).toBe(true);
+  });
+
+  it('installs gemini TOML commands at user scope (not GEMINI.md)', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    await runInstall({
+      cwd: project.dir, homeDir: home.dir,
+      flags: { user: true, agent: 'gemini' }
+    });
+    expect(existsSync(join(home.dir, '.gemini/commands/docs-install.toml'))).toBe(true);
+    expect(existsSync(join(home.dir, 'GEMINI.md'))).toBe(false);
+  });
+
+  it('skips codex and copilot under --user --all', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    const r = await runInstall({
+      cwd: project.dir, homeDir: home.dir,
+      flags: { user: true, all: true }
+    });
+    expect(r.targets).toContain('claude-code');
+    expect(r.targets).toContain('opencode');
+    expect(r.targets).toContain('gemini');
+    expect(r.targets).not.toContain('codex');
+    expect(r.targets).not.toContain('copilot');
+    expect(existsSync(join(home.dir, 'AGENTS.md'))).toBe(false);
+    expect(existsSync(join(home.dir, '.github/copilot-instructions.md'))).toBe(false);
+  });
+
+  it('explicit --user --agent=codex is skipped with marker', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    const r = await runInstall({
+      cwd: project.dir, homeDir: home.dir,
+      flags: { user: true, agent: 'codex' }
+    });
+    expect(r.results[0].skipped).toBe('user-scope-unsupported');
+    expect(existsSync(join(home.dir, 'AGENTS.md'))).toBe(false);
+  });
+
+  it('gemini project scope still installs GEMINI.md (merge)', async () => {
+    const project = mkProject();
+    await runInstall({
+      cwd: project.dir, homeDir: project.dir,
+      flags: { agent: 'gemini' }
+    });
+    expect(existsSync(join(project.dir, 'GEMINI.md'))).toBe(true);
+  });
 });
