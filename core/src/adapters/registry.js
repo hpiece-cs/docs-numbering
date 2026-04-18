@@ -13,7 +13,7 @@ export function getAdaptersDir() {
     return cachedAdaptersDir;
   }
   const hereReal = realpathSync(HERE);
-  cachedAdaptersDir = resolve(hereReal, '..', '..', '..', 'adapters');
+  cachedAdaptersDir = resolve(hereReal, '..', '..', 'adapters');
   return cachedAdaptersDir;
 }
 

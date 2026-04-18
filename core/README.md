@@ -239,63 +239,26 @@ slug:
 
 ## 에이전트 연동
 
-### 공통 전제조건
-
-1. `docs-numbering` CLI가 PATH에 있어야 합니다 (위 설치 참고)
-2. 프로젝트에서 `docs-numbering init`으로 `.docs-numbering.yaml` 생성
-3. 아래에서 사용하는 에이전트에 맞는 어댑터 파일을 복사 또는 심볼릭 링크
-
-> **심볼릭 링크 vs 복사**: 심볼릭 링크(`ln -s`)를 사용하면 소스 업데이트가 자동 반영됩니다. 독립 프로젝트라면 `cp`로 복사하세요.
-
-### Claude Code
+어댑터는 `install` 명령으로 설치합니다 — 수동 `ln -s`/`cp` 불필요.
 
 ```bash
-mkdir -p <프로젝트>/.claude/skills <프로젝트>/.claude/commands
-ln -s <docs-numbering>/adapters/claude-code/skills/docs-numbering <프로젝트>/.claude/skills/docs-numbering
-ln -s <docs-numbering>/adapters/claude-code/commands/*.md <프로젝트>/.claude/commands/
+cd <프로젝트>
+docs-numbering install                    # 감지된 에이전트에 자동 설치 (.docs-numbering.yaml 자동 생성)
+docs-numbering install --agent=claude-code
+docs-numbering install --all
 ```
-- 슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- 스킬 자동 트리거: "문서 저장해줘", "번호 매겨줘", "정리해줘" 등
 
-### Codex / Cursor / Windsurf (AGENTS.md)
+전역(`npm install -g`) 설치 시 `~/.claude/`에 Claude Code 어댑터가 자동 배치되어 `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` 슬래시 커맨드가 모든 프로젝트에서 사용 가능합니다.
 
-```bash
-cp <docs-numbering>/adapters/agents-md/AGENTS.md <프로젝트>/AGENTS.md
-```
-자연어 트리거: "create doc", "organize docs", "번호 매겨줘"
+| 에이전트 | 설치 대상 | 기본 모드 | 트리거 |
+|----------|----------|----------|--------|
+| Claude Code | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | 심볼릭 링크 | 슬래시 + 자연어 |
+| OpenCode | `.opencode/commands/*.md` | 복사 | 슬래시 |
+| Codex / Cursor / Windsurf | `AGENTS.md` (루트) | 병합 | 자연어 |
+| Gemini CLI | `GEMINI.md` (루트) | 병합 | 자연어 |
+| GitHub Copilot | `.github/copilot-instructions.md` | 병합 | 자연어 |
 
-### OpenCode
-
-```bash
-mkdir -p <프로젝트>/.opencode/commands
-cp <docs-numbering>/adapters/opencode/commands/*.md <프로젝트>/.opencode/commands/
-```
-슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-
-### Gemini CLI
-
-```bash
-cp <docs-numbering>/adapters/gemini/GEMINI.md <프로젝트>/GEMINI.md
-```
-자연어 트리거
-
-### GitHub Copilot
-
-```bash
-mkdir -p <프로젝트>/.github
-cp <docs-numbering>/adapters/copilot/.github/copilot-instructions.md <프로젝트>/.github/
-```
-자연어 트리거
-
-### 어댑터 요약
-
-| 에이전트 | 어댑터 | 슬래시 커맨드 | 트리거 |
-|----------|--------|:-:|--------|
-| Claude Code | SKILL.md + commands | `/docs-new`, `/docs-migrate`, `/docs-rollback` | 자동 + 수동 |
-| OpenCode | commands | `/docs-new`, `/docs-migrate`, `/docs-rollback` | 수동 |
-| Codex / Cursor / Windsurf | AGENTS.md | - | 자연어 |
-| Gemini CLI | GEMINI.md | - | 자연어 |
-| GitHub Copilot | copilot-instructions.md | - | 자연어 |
+자세한 옵션은 상위 디렉토리의 [User Manual](../docs/USER_MANUAL_KO.md)을 참조하세요.
 
 ---
 

@@ -26,6 +26,13 @@
     "docs-numbering": "bin/docs-numbering.js",
     "docnum": "bin/docs-numbering.js"
   },
+  "files": [
+    "bin",
+    "src",
+    "templates",
+    "adapters",
+    "README.md"
+  ],
   "exports": {
     ".": "./src/index.js"
   },
