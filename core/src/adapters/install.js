@@ -118,17 +118,18 @@ function sameRealPath(a, b) {
   }
 }
 
-export async function installAdapter({ cwd, agent, mode, force, dryRun }) {
+export async function installAdapter({ cwd, baseDir, agent, mode, force, dryRun }) {
   const adapter = getAdapter(agent);
   if (!adapter) throw new Error(t('errors.unknown_adapter', { name: agent }));
   const adaptersDir = getAdaptersDir();
   const effectiveMode = resolveMode(adapter, mode);
   const items = expandItems(adapter, adaptersDir);
+  const installBase = baseDir || cwd;
   const actions = [];
 
   for (const item of items) {
     const srcAbs = resolve(adaptersDir, item.from);
-    const destAbs = resolve(cwd, item.to);
+    const destAbs = resolve(installBase, item.to);
     const isDir = item.type === 'dir';
 
     if (item.type === 'merge' || effectiveMode === 'merge') {
@@ -177,15 +178,16 @@ export async function installAdapter({ cwd, agent, mode, force, dryRun }) {
   return { adapter: agent, mode: effectiveMode, actions };
 }
 
-export async function uninstallAdapter({ cwd, agent, dryRun }) {
+export async function uninstallAdapter({ cwd, baseDir, agent, dryRun }) {
   const adapter = getAdapter(agent);
   if (!adapter) throw new Error(t('errors.unknown_adapter', { name: agent }));
   const adaptersDir = getAdaptersDir();
   const items = expandItems(adapter, adaptersDir);
+  const installBase = baseDir || cwd;
   const actions = [];
 
   for (const item of items) {
-    const destAbs = resolve(cwd, item.to);
+    const destAbs = resolve(installBase, item.to);
     const isDir = item.type === 'dir';
 
     if (item.type === 'merge') {

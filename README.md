@@ -146,7 +146,21 @@ docs-numbering uninstall --agent=claude-code
 docs-numbering uninstall --all
 ```
 
-> Inside Claude Code or other agent chats, ask the agent to run `docs-numbering install` in your project — no terminal switch required.
+### One-time user-scope install (recommended for Claude Code users)
+
+Install the Claude Code adapter **once** into your home directory, then bootstrap any project from inside the chat with `/docs-install`:
+
+```bash
+docs-numbering install --user --agent=claude-code
+```
+
+This places the skill and slash commands under `~/.claude/`, making them available in every project. After that, open Claude Code in any project and type:
+
+```
+/docs-install
+```
+
+It runs `docs-numbering install` in the current project — creating `.docs-numbering.yaml` and deploying project-level adapters — without leaving the chat. Also available: `/docs-new`, `/docs-migrate`, `/docs-rollback`.
 
 ### Supported agents
 

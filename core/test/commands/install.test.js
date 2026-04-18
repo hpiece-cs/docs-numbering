@@ -176,3 +176,62 @@ describe('init integration', () => {
     expect(existsSync(join(p.dir, '.docs-numbering.yaml'))).toBe(false);
   });
 });
+
+describe('install: --user scope', () => {
+  it('installs claude-code adapter into homeDir, not cwd', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    mkdirSync(join(home.dir, '.claude'), { recursive: true });
+    const r = await runInstall({
+      cwd: project.dir,
+      homeDir: home.dir,
+      flags: { user: true, agent: 'claude-code' }
+    });
+    expect(r.scope).toBe('user');
+    expect(lstatSync(join(home.dir, '.claude/skills/docs-numbering')).isSymbolicLink()).toBe(true);
+    expect(lstatSync(join(home.dir, '.claude/commands/docs-new.md')).isSymbolicLink()).toBe(true);
+    expect(existsSync(join(project.dir, '.claude/skills/docs-numbering'))).toBe(false);
+  });
+
+  it('skips auto-init under user scope', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    mkdirSync(join(home.dir, '.claude'), { recursive: true });
+    const r = await runInstall({
+      cwd: project.dir,
+      homeDir: home.dir,
+      flags: { user: true, agent: 'claude-code' }
+    });
+    expect(r.initialized).toBeNull();
+    expect(existsSync(join(project.dir, '.docs-numbering.yaml'))).toBe(false);
+  });
+
+  it('detects user-scope agents against homeDir', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    mkdirSync(join(home.dir, '.claude'), { recursive: true });
+    const r = await runInstall({
+      cwd: project.dir,
+      homeDir: home.dir,
+      flags: { user: true }
+    });
+    expect(r.targets).toContain('claude-code');
+  });
+
+  it('uninstalls from homeDir under --user', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    mkdirSync(join(home.dir, '.claude'), { recursive: true });
+    await runInstall({
+      cwd: project.dir, homeDir: home.dir,
+      flags: { user: true, agent: 'claude-code' }
+    });
+    await runUninstall({
+      cwd: project.dir, homeDir: home.dir,
+      flags: { user: true, agent: 'claude-code' }
+    });
+    let present = false;
+    try { lstatSync(join(home.dir, '.claude/skills/docs-numbering')); present = true; } catch {}
+    expect(present).toBe(false);
+  });
+});

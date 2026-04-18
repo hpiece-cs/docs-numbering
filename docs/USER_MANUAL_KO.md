@@ -172,12 +172,14 @@ docs-numbering rollback --last --apply # 실행
 ### `install` — 어댑터 자동 설치
 
 ```bash
-docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--no-init] [--dry-run]
+docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--user] [--no-init] [--dry-run]
 ```
 
 각 AI 에이전트별 어댑터 파일(슬래시 커맨드, 스킬, 지시문)을 프로젝트에 자동으로 설치합니다. 수동 `ln -s`나 `cp` 없이 한 번에 끝납니다.
 
-**자동 초기화:** `.docs-numbering.yaml`이 없으면 `install`이 자동으로 생성합니다 — 별도의 `docs-numbering init`을 먼저 실행할 필요가 없습니다. 비활성화하려면 `--no-init`을 쓰거나 `--dry-run`을 사용하세요(후자도 init을 건너뜁니다).
+**자동 초기화:** `.docs-numbering.yaml`이 없으면 `install`이 자동으로 생성합니다 — 별도의 `docs-numbering init`을 먼저 실행할 필요가 없습니다. 비활성화하려면 `--no-init`을 쓰거나 `--dry-run`을 사용하세요(후자도 init을 건너뜁니다). `--user` 범위에서는 자동 초기화가 동작하지 않습니다.
+
+**사용자 범위(`--user`):** 프로젝트 대신 `$HOME`에 설치합니다(예: `~/.claude/commands/`, `~/.claude/skills/docs-numbering`). 슬래시 커맨드(`/docs-install` 등)를 모든 프로젝트에서 쓸 수 있도록 1회성으로 배치할 때 사용합니다. 감지도 `$HOME` 기준으로 수행됩니다.
 
 | 플래그 | 설명 |
 |--------|------|
@@ -185,6 +187,7 @@ docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--fo
 | `--all` | 지원하는 모든 어댑터 설치 |
 | `--mode <모드>` | 설치 방식 (기본값은 에이전트별로 다름): `link`(심볼릭 링크), `copy`(복사), `merge`(블록 병합) |
 | `--force` | 기존 파일이 있어도 덮어쓰기 |
+| `--user` | 현재 프로젝트 대신 `$HOME`에 설치 |
 | `--no-init` | `.docs-numbering.yaml`이 없어도 자동 생성하지 않음 |
 | `--dry-run` | 실제 파일을 만들지 않고 계획만 표시 (`--no-init`을 내포) |
 
@@ -227,7 +230,14 @@ docs-numbering install --all
 
 # 실제 변경 없이 계획만 확인
 docs-numbering install --dry-run --json
+
+# 사용자 범위 1회 설치 — 모든 프로젝트에서 /docs-install 슬래시 커맨드 활성화
+docs-numbering install --user --agent=claude-code
 ```
+
+### Claude Code 안에서 부트스트랩하기
+
+`docs-numbering install --user --agent=claude-code`를 한 번만 실행해두면 이후 어떤 프로젝트에서든 `/docs-install` 슬래시 커맨드가 활성화됩니다. 이 커맨드는 Claude의 셸 도구로 현재 프로젝트 디렉토리에서 `docs-numbering install`을 실행하므로, 채팅을 떠나지 않고도 새 프로젝트를 초기화할 수 있습니다. 이후 프로젝트 단위의 `/docs-new`, `/docs-migrate`, `/docs-rollback` 슬래시 커맨드와 자동 트리거 스킬도 함께 사용 가능해집니다.
 
 **설치 위치 커스터마이즈:** `DOCS_NUMBERING_ADAPTERS_DIR` 환경 변수로 어댑터 소스 디렉토리를 직접 지정할 수 있습니다. 저장소를 옮기거나 포크한 경우 유용합니다.
 

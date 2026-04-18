@@ -123,6 +123,7 @@ program.command('install')
   .option('--all', 'install for all adapters')
   .option('--mode <mode>', 'link | copy | merge (auto when omitted)')
   .option('--force', 'overwrite existing files')
+  .option('--user', 'install into user home (~/.claude/ etc.) instead of project')
   .option('--no-init', 'skip auto-creating .docs-numbering.yaml when missing')
   .option('--dry-run')
   .action(async (opts) => {
@@ -134,6 +135,7 @@ program.command('install')
 program.command('uninstall')
   .option('--agent <name>')
   .option('--all')
+  .option('--user', 'uninstall from user home instead of project')
   .option('--dry-run')
   .action(async (opts) => {
     const g = program.opts();

@@ -172,12 +172,14 @@ docs-numbering rollback --last --apply # execute
 ### `install` — Auto-Install Adapters
 
 ```bash
-docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--no-init] [--dry-run]
+docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--user] [--no-init] [--dry-run]
 ```
 
 Installs adapter files (slash commands, skills, instructions) for a given AI agent into the current project. Replaces manual `ln -s` / `cp` steps.
 
-**Auto-init:** If `.docs-numbering.yaml` does not exist in the project, `install` creates it automatically — you no longer need a separate `docs-numbering init` step. Use `--no-init` to opt out, or `--dry-run` (which also skips init).
+**Auto-init:** If `.docs-numbering.yaml` does not exist in the project, `install` creates it automatically — you no longer need a separate `docs-numbering init` step. Use `--no-init` to opt out, or `--dry-run` (which also skips init). Auto-init is skipped under `--user` scope.
+
+**User scope (`--user`):** Installs into `$HOME` instead of the current project (e.g., `~/.claude/commands/`, `~/.claude/skills/docs-numbering`). Intended as a one-time setup so slash commands like `/docs-install` are available in any project without per-project installation. Detection also runs against `$HOME`.
 
 | Flag | Description |
 |------|-------------|
@@ -185,6 +187,7 @@ Installs adapter files (slash commands, skills, instructions) for a given AI age
 | `--all` | Install adapters for every supported agent |
 | `--mode <mode>` | Install method (agent-specific default): `link` (symlink), `copy`, `merge` (block insertion) |
 | `--force` | Overwrite existing files |
+| `--user` | Install into `$HOME` instead of the current project |
 | `--no-init` | Skip auto-creating `.docs-numbering.yaml` when missing |
 | `--dry-run` | Show the plan without writing anything (implies `--no-init`) |
 
@@ -227,7 +230,14 @@ docs-numbering install --all
 
 # Preview without writing
 docs-numbering install --dry-run --json
+
+# One-time user-scope install — enables /docs-install in every project
+docs-numbering install --user --agent=claude-code
 ```
+
+### Bootstrapping from inside Claude Code
+
+Once you've run `docs-numbering install --user --agent=claude-code` once, a `/docs-install` slash command is available in every project you open. Running it executes `docs-numbering install` in the current project directory via Claude's shell tool — so you can initialize a brand-new project without leaving the chat. Subsequently `/docs-new`, `/docs-migrate`, `/docs-rollback` (project-level) and the auto-trigger skill are also available.
 
 **Custom adapter source:** Override the adapters directory with `DOCS_NUMBERING_ADAPTERS_DIR`. Useful when the repository is relocated or forked.
 

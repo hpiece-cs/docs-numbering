@@ -146,7 +146,21 @@ docs-numbering uninstall --agent=claude-code
 docs-numbering uninstall --all
 ```
 
-> Claude Code 등 에이전트 채팅 안에서도 "docs-numbering install 실행해줘"라고 하면 터미널로 나가지 않고 바로 설치됩니다.
+### 사용자 단위 1회 설치 (Claude Code 사용자 권장)
+
+Claude Code 어댑터를 **홈 디렉토리에 한 번만** 설치해두면, 이후 어떤 프로젝트에서도 채팅 안에서 `/docs-install`로 부트스트랩할 수 있습니다:
+
+```bash
+docs-numbering install --user --agent=claude-code
+```
+
+스킬과 슬래시 커맨드가 `~/.claude/`에 배치되어 모든 프로젝트에서 사용 가능해집니다. 그 다음 아무 프로젝트에서 Claude Code를 열고:
+
+```
+/docs-install
+```
+
+현재 프로젝트에서 `docs-numbering install`이 실행되어 `.docs-numbering.yaml` 생성 + 프로젝트 단위 어댑터 배치가 이루어집니다 — 터미널로 나갈 필요가 없습니다. `/docs-new`, `/docs-migrate`, `/docs-rollback`도 함께 활성화됩니다.
 
 ### 지원 에이전트
 
