@@ -1,5 +1,32 @@
 # Release Notes
 
+## v0.1.1 (2026-04-18)
+
+### Features
+
+- **`install` / `uninstall` commands** — Auto-detect agents in the project and deploy adapters via symlink/copy/merge modes; replaces all manual `ln -s`/`cp` steps
+- **Auto-init** — `install` creates `.docs-numbering.yaml` automatically when missing (use `--no-init` to opt out)
+- **`--user` scope** — Install adapters into `$HOME` for cross-project availability
+- **Global postinstall hook** — `npm install -g` automatically deploys user-scope slash commands for the 6 supported CLIs
+- **Universal `/docs-install` slash command** — Bootstrap any project from inside the agent chat without leaving the session
+- **Expanded agent surface** — Each agent gets its native slash command path:
+  - Claude Code: `~/.claude/commands/` + `~/.claude/skills/docs-numbering`
+  - OpenCode: `~/.opencode/commands/`
+  - Codex CLI: `~/.codex/prompts/`
+  - Cursor: `~/.cursor/commands/`
+  - Gemini CLI: `~/.gemini/commands/*.toml`
+  - Copilot CLI: `~/.copilot/skills/*/SKILL.md`
+  - Windsurf: `.windsurf/workflows/` (project-only)
+  - Copilot VS Code Chat: `.github/prompts/*.prompt.md` (project-only)
+- **Codex/Cursor/Windsurf split** — Bundled adapter separated into 3 distinct agents with their own slash command paths
+
+### Refactor
+
+- `adapters/` moved into `core/adapters/` so npm publish includes them
+- `package.json` `files` field added for explicit publish manifest
+- Adapter registry extended with `userScope`, `userItems`, `userDefaultMode` fields
+- `installAdapter` / `uninstallAdapter` accept `baseDir` and `scope` parameters
+
 ## v0.1.0 (2026-04-16)
 
 Initial release.
