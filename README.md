@@ -67,6 +67,8 @@ docs-numbering rollback --last --apply
 | `validate` | Check for duplicate numbers and unknown phases |
 | `history` | View operation log |
 | `rollback` | Undo previous operations |
+| `install` | Install adapter files for a detected agent (symlink / copy / merge) |
+| `uninstall` | Remove installed adapter files for an agent |
 
 ## Naming Pattern
 
@@ -123,53 +125,39 @@ See [User Manual](docs/USER_MANUAL.md) for full configuration reference.
 
 ## Agent Integration
 
-### Prerequisites (all agents)
-
-1. `docs-numbering` CLI must be installed and in PATH (see [Quick Start](#quick-start))
-2. Run `docs-numbering init` in your project to create `.docs-numbering.yaml`
-3. Copy or symlink the adapter files for your agent (see below)
-
-> **Symlink vs copy**: Use symlinks (`ln -s`) to auto-reflect source updates. Use `cp` for standalone projects that don't track the docs-numbering repo.
-
-In the examples below, `DOCS_NUM` is the path where you cloned this repository.
-
-### Claude Code
+Adapters are installed with the built-in `install` command — no manual `ln -s`/`cp` steps needed.
 
 ```bash
-DOCS_NUM=/path/to/docs-numbering
-mkdir -p .claude/skills .claude/commands
-ln -s $DOCS_NUM/adapters/claude-code/skills/docs-numbering .claude/skills/docs-numbering
-ln -s $DOCS_NUM/adapters/claude-code/commands/*.md .claude/commands/
-```
-Slash commands: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+cd my-project
+docs-numbering init                       # creates .docs-numbering.yaml
 
-### Codex / Cursor / Windsurf (AGENTS.md)
+# Auto-detect agents in the project and install adapters
+docs-numbering install
 
-```bash
-cp $DOCS_NUM/adapters/agents-md/AGENTS.md ./AGENTS.md
-```
-Triggers on natural language: "create doc", "organize docs", "번호 매겨줘"
+# Or target a specific agent
+docs-numbering install --agent=claude-code
+docs-numbering install --agent=codex --force
+docs-numbering install --all              # install every supported adapter
+docs-numbering install --dry-run          # preview without writing
 
-### Gemini CLI
-
-```bash
-cp $DOCS_NUM/adapters/gemini/GEMINI.md ./GEMINI.md
+# Remove
+docs-numbering uninstall --agent=claude-code
+docs-numbering uninstall --all
 ```
 
-### OpenCode
+### Supported agents
 
-```bash
-mkdir -p .opencode/commands
-cp $DOCS_NUM/adapters/opencode/commands/*.md .opencode/commands/
-```
-Slash commands: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+| Agent | Detection | Install target | Default mode |
+|-------|-----------|----------------|--------------|
+| Claude Code | `.claude/` | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | symlink |
+| OpenCode | `.opencode/` | `.opencode/commands/*.md` | copy |
+| Codex / Cursor / Windsurf | `.cursor/`, `.codex/`, `.windsurf/`, `AGENTS.md` | `AGENTS.md` | merge |
+| Gemini CLI | `.gemini/`, `GEMINI.md` | `GEMINI.md` | merge |
+| GitHub Copilot | `.github/` | `.github/copilot-instructions.md` | merge |
 
-### GitHub Copilot
+**Modes** — `--mode=link` (symlink, updates flow through), `--mode=copy` (standalone snapshot), `--mode=merge` (insert or refresh a `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` block without clobbering existing content).
 
-```bash
-mkdir -p .github
-cp $DOCS_NUM/adapters/copilot/.github/copilot-instructions.md .github/
-```
+After install, slash commands (`/docs-new`, `/docs-migrate`, `/docs-rollback`) or natural-language triggers ("create doc", "번호 매겨줘") become available in the corresponding agent.
 
 ## Documentation
 

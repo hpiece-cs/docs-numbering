@@ -15,6 +15,8 @@
   - [validate](#validate--일관성-검사)
   - [history](#history--작업-이력-조회)
   - [rollback](#rollback--작업-되돌리기)
+  - [install](#install--어댑터-자동-설치)
+  - [uninstall](#uninstall--어댑터-제거)
 - [글로벌 옵션](#글로벌-옵션)
 - [설정](#설정)
   - [설정 우선순위](#설정-우선순위)
@@ -165,6 +167,93 @@ docs-numbering rollback [--last] [--to=<id>] [--apply] [--force]
 docs-numbering history --limit=5       # 이력 확인
 docs-numbering rollback --last         # 미리보기
 docs-numbering rollback --last --apply # 실행
+```
+
+### `install` — 어댑터 자동 설치
+
+```bash
+docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--dry-run]
+```
+
+각 AI 에이전트별 어댑터 파일(슬래시 커맨드, 스킬, 지시문)을 프로젝트에 자동으로 설치합니다. 수동 `ln -s`나 `cp` 없이 한 번에 끝납니다.
+
+| 플래그 | 설명 |
+|--------|------|
+| `--agent <이름>` | 특정 에이전트 지정: `claude-code`, `opencode`, `codex`, `gemini`, `copilot` |
+| `--all` | 지원하는 모든 어댑터 설치 |
+| `--mode <모드>` | 설치 방식 (기본값은 에이전트별로 다름): `link`(심볼릭 링크), `copy`(복사), `merge`(블록 병합) |
+| `--force` | 기존 파일이 있어도 덮어쓰기 |
+| `--dry-run` | 실제 파일을 만들지 않고 계획만 표시 |
+
+플래그가 하나도 없으면 프로젝트를 스캔해 **감지된 에이전트**에 설치합니다. 아무것도 감지되지 않으면 지원 목록만 보여줍니다.
+
+**지원 에이전트와 동작:**
+
+| 에이전트 | 감지 조건 | 설치 대상 | 기본 모드 |
+|---------|----------|----------|----------|
+| Claude Code | `.claude/` | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | `link` |
+| OpenCode | `.opencode/` | `.opencode/commands/*.md` | `copy` |
+| Codex / Cursor / Windsurf | `.cursor/`, `.codex/`, `.windsurf/`, `AGENTS.md` | 프로젝트 루트 `AGENTS.md` | `merge` |
+| Gemini CLI | `.gemini/`, `GEMINI.md` | 프로젝트 루트 `GEMINI.md` | `merge` |
+| GitHub Copilot | `.github/` | `.github/copilot-instructions.md` | `merge` |
+
+**설치 모드 설명:**
+
+- **`link`** — 저장소의 어댑터 파일로 심볼릭 링크를 만듭니다. 저장소를 `git pull`하면 변경사항이 자동 반영됩니다. 저장소 위치가 바뀌면 링크가 깨집니다.
+- **`copy`** — 파일을 그대로 복사합니다. 독립적이지만 업데이트를 수동으로 다시 받아야 합니다.
+- **`merge`** — 대상이 루트 파일(`AGENTS.md` 등)일 때 사용됩니다. 기존 파일을 덮어쓰지 않고 `<!-- docs-numbering:start -->` ~ `<!-- docs-numbering:end -->` 블록으로 삽입합니다. 재설치 시 같은 블록이 갱신되므로 중복이 쌓이지 않습니다.
+
+**예시:**
+
+```bash
+# 감지된 에이전트 자동 설치
+cd my-project
+docs-numbering install
+
+# 특정 에이전트만
+docs-numbering install --agent=claude-code
+
+# 기존 파일 덮어쓰기
+docs-numbering install --agent=claude-code --force
+
+# 링크 대신 복사본 설치 (저장소와 분리하고 싶을 때)
+docs-numbering install --agent=claude-code --mode=copy
+
+# 지원하는 모든 어댑터 설치
+docs-numbering install --all
+
+# 실제 변경 없이 계획만 확인
+docs-numbering install --dry-run --json
+```
+
+**설치 위치 커스터마이즈:** `DOCS_NUMBERING_ADAPTERS_DIR` 환경 변수로 어댑터 소스 디렉토리를 직접 지정할 수 있습니다. 저장소를 옮기거나 포크한 경우 유용합니다.
+
+```bash
+DOCS_NUMBERING_ADAPTERS_DIR=/my/fork/adapters docs-numbering install --agent=claude-code
+```
+
+### `uninstall` — 어댑터 제거
+
+```bash
+docs-numbering uninstall [--agent=<name>] [--all] [--dry-run]
+```
+
+`install`로 설치한 어댑터 파일을 제거합니다.
+
+| 플래그 | 설명 |
+|--------|------|
+| `--agent <이름>` | 특정 에이전트만 제거 |
+| `--all` | 모든 어댑터 제거 |
+| `--dry-run` | 실제 삭제 없이 계획만 표시 |
+
+병합(`merge`) 모드로 설치된 경우 `docs-numbering:start`/`end` 블록만 제거되고 **나머지 기존 내용은 보존**됩니다. 파일이 블록만 담고 있었다면 파일 자체가 삭제됩니다.
+
+```bash
+# 특정 에이전트 제거
+docs-numbering uninstall --agent=claude-code
+
+# 모두 제거
+docs-numbering uninstall --all
 ```
 
 ---
@@ -705,64 +794,47 @@ docs-numbering rollback --last --locale=en
 
 ## 에이전트 연동
 
-코어 CLI는 에이전트에 구애받지 않습니다. 각 에이전트별 어댑터를 제공합니다.
+코어 CLI는 에이전트에 구애받지 않습니다. 어댑터 설치는 [`install` 명령](#install--어댑터-자동-설치) 하나로 끝납니다.
 
-### Claude Code
-
-```bash
-mkdir -p <프로젝트>/.claude/skills <프로젝트>/.claude/commands
-ln -s <docs-numbering>/adapters/claude-code/skills/docs-numbering <프로젝트>/.claude/skills/docs-numbering
-ln -s <docs-numbering>/adapters/claude-code/commands/docs-new.md <프로젝트>/.claude/commands/docs-new.md
-ln -s <docs-numbering>/adapters/claude-code/commands/docs-migrate.md <프로젝트>/.claude/commands/docs-migrate.md
-ln -s <docs-numbering>/adapters/claude-code/commands/docs-rollback.md <프로젝트>/.claude/commands/docs-rollback.md
-```
-
-- 슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- 스킬 자동 트리거: "문서 저장해줘", "번호 매겨줘", "정리해줘" 등에서 자동 활성화
-
-### Codex / Cursor / Windsurf (AGENTS.md)
+### 권장 워크플로우
 
 ```bash
-cp <docs-numbering>/adapters/agents-md/AGENTS.md <프로젝트>/AGENTS.md
+cd my-project
+docs-numbering init              # .docs-numbering.yaml 생성
+docs-numbering install           # 감지된 에이전트에 어댑터 자동 설치
 ```
 
-[AGENTS.md](https://agents.md/) 오픈 표준을 사용합니다. Codex, Cursor, Windsurf 등 다수 도구가 지원합니다. 자연어 요청("create a doc", "번호 매겨줘" 등)에 반응하여 `docs-numbering` CLI를 호출합니다.
+`install`이 현재 프로젝트를 스캔해 `.claude/`, `.opencode/`, `.github/`, `AGENTS.md`, `GEMINI.md` 등을 확인하고 해당 어댑터를 알맞은 방식(심볼릭 링크 / 복사 / 블록 병합)으로 배치합니다.
 
-### OpenCode
-
+특정 에이전트만 원할 때:
 ```bash
-mkdir -p <프로젝트>/.opencode/commands
-cp <docs-numbering>/adapters/opencode/commands/*.md <프로젝트>/.opencode/commands/
+docs-numbering install --agent=claude-code
+docs-numbering install --agent=opencode
+docs-numbering install --agent=codex      # AGENTS.md
+docs-numbering install --agent=gemini     # GEMINI.md
+docs-numbering install --agent=copilot    # .github/copilot-instructions.md
 ```
 
-- 슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-
-### Gemini CLI
-
+지원하는 모든 에이전트에 한 번에 적용:
 ```bash
-cp <docs-numbering>/adapters/gemini/GEMINI.md <프로젝트>/GEMINI.md
+docs-numbering install --all
 ```
 
-Gemini CLI는 프로젝트 루트의 `GEMINI.md`를 읽습니다. 자연어 요청에 반응합니다.
-
-### GitHub Copilot
-
-```bash
-mkdir -p <프로젝트>/.github
-cp <docs-numbering>/adapters/copilot/.github/copilot-instructions.md <프로젝트>/.github/
-```
-
-Copilot은 `.github/copilot-instructions.md`를 프로젝트 수준 지시문으로 읽습니다. 자연어 요청에 반응합니다.
+> 전체 플래그와 모드 설명(`link`/`copy`/`merge`), 감지 규칙, 병합 블록 마커는 [`install` 명령 섹션](#install--어댑터-자동-설치)을 참조하세요.
 
 ### 어댑터 요약
 
-| 에이전트 | 어댑터 | 슬래시 커맨드 | 트리거 |
-|----------|--------|:-:|--------|
-| Claude Code | SKILL.md + commands | `/docs-new`, `/docs-migrate`, `/docs-rollback` | 자동 + 수동 |
-| OpenCode | commands | `/docs-new`, `/docs-migrate`, `/docs-rollback` | 수동 |
-| Codex / Cursor / Windsurf | AGENTS.md | - | 자연어 |
-| Gemini CLI | GEMINI.md | - | 자연어 |
-| GitHub Copilot | copilot-instructions.md | - | 자연어 |
+| 에이전트 | 설치 대상 | 기본 모드 | 활성화 방식 |
+|----------|----------|----------|-------------|
+| Claude Code | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | `link` | 슬래시 커맨드 (`/docs-new`, `/docs-migrate`, `/docs-rollback`) + 스킬 자동 트리거 |
+| OpenCode | `.opencode/commands/*.md` | `copy` | 슬래시 커맨드 (`/docs-new`, `/docs-migrate`, `/docs-rollback`) |
+| Codex / Cursor / Windsurf | `AGENTS.md` (루트) | `merge` | 자연어 트리거 ("create a doc", "번호 매겨줘" 등) |
+| Gemini CLI | `GEMINI.md` (루트) | `merge` | 자연어 트리거 |
+| GitHub Copilot | `.github/copilot-instructions.md` | `merge` | 자연어 트리거 |
+
+### 수동 설치 (참고)
+
+`install` 명령을 사용할 수 없는 환경(예: CLI 없이 어댑터만 이식)에서는 저장소의 `adapters/<에이전트>/` 아래 파일을 직접 복사하거나 심볼릭 링크해도 동일하게 동작합니다. 루트 파일(`AGENTS.md`, `GEMINI.md`, `copilot-instructions.md`)은 기존 내용을 유지하려면 `<!-- docs-numbering:start -->` ~ `<!-- docs-numbering:end -->` 블록 형태로 삽입하세요.
 
 ---
 

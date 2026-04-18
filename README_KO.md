@@ -67,6 +67,8 @@ docs-numbering rollback --last --apply
 | `validate` | 중복 번호, 알 수 없는 단계 검사 |
 | `history` | 작업 이력 조회 |
 | `rollback` | 이전 작업 되돌리기 |
+| `install` | 감지된 에이전트에 어댑터 파일 설치 (심볼릭 링크 / 복사 / 병합) |
+| `uninstall` | 설치된 어댑터 파일 제거 |
 
 ## 파일명 패턴
 
@@ -123,55 +125,39 @@ slug:
 
 ## 에이전트 연동
 
-### 공통 전제조건 (모든 에이전트)
-
-1. `docs-numbering` CLI가 설치되어 PATH에 있어야 합니다 ([빠른 시작](#빠른-시작) 참고)
-2. 프로젝트에서 `docs-numbering init`으로 `.docs-numbering.yaml` 생성
-3. 아래에서 사용하는 에이전트에 맞는 어댑터 파일을 복사 또는 심볼릭 링크
-
-> **심볼릭 링크 vs 복사**: 심볼릭 링크(`ln -s`)를 사용하면 소스 업데이트가 자동 반영됩니다. 독립 프로젝트라면 `cp`로 복사하세요.
-
-아래 예시에서 `DOCS_NUM`은 이 저장소를 클론한 경로입니다.
-
-### Claude Code
+`install` 명령 하나로 어댑터 설치가 끝납니다 — 수동으로 `ln -s`나 `cp`를 하지 않아도 됩니다.
 
 ```bash
-DOCS_NUM=/path/to/docs-numbering
-mkdir -p .claude/skills .claude/commands
-ln -s $DOCS_NUM/adapters/claude-code/skills/docs-numbering .claude/skills/docs-numbering
-ln -s $DOCS_NUM/adapters/claude-code/commands/*.md .claude/commands/
+cd my-project
+docs-numbering init                       # .docs-numbering.yaml 생성
+
+# 프로젝트에서 에이전트를 자동 감지해 어댑터 설치
+docs-numbering install
+
+# 특정 에이전트 지정
+docs-numbering install --agent=claude-code
+docs-numbering install --agent=codex --force
+docs-numbering install --all              # 지원 어댑터 모두 설치
+docs-numbering install --dry-run          # 실제 쓰기 없이 미리보기
+
+# 제거
+docs-numbering uninstall --agent=claude-code
+docs-numbering uninstall --all
 ```
-슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
 
-### Codex / Cursor / Windsurf (AGENTS.md)
+### 지원 에이전트
 
-```bash
-cp $DOCS_NUM/adapters/agents-md/AGENTS.md ./AGENTS.md
-```
-자연어 트리거: "create doc", "organize docs", "번호 매겨줘"
+| 에이전트 | 감지 조건 | 설치 대상 | 기본 모드 |
+|---------|----------|----------|----------|
+| Claude Code | `.claude/` | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | 심볼릭 링크 |
+| OpenCode | `.opencode/` | `.opencode/commands/*.md` | 복사 |
+| Codex / Cursor / Windsurf | `.cursor/`, `.codex/`, `.windsurf/`, `AGENTS.md` | `AGENTS.md` | 병합 |
+| Gemini CLI | `.gemini/`, `GEMINI.md` | `GEMINI.md` | 병합 |
+| GitHub Copilot | `.github/` | `.github/copilot-instructions.md` | 병합 |
 
-### OpenCode
+**모드** — `--mode=link`(심볼릭 링크, 소스 업데이트 자동 반영), `--mode=copy`(독립 스냅샷), `--mode=merge`(기존 파일을 건드리지 않고 `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` 블록만 삽입·갱신).
 
-```bash
-mkdir -p .opencode/commands
-cp $DOCS_NUM/adapters/opencode/commands/*.md .opencode/commands/
-```
-슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-
-### Gemini CLI
-
-```bash
-cp $DOCS_NUM/adapters/gemini/GEMINI.md ./GEMINI.md
-```
-자연어 트리거
-
-### GitHub Copilot
-
-```bash
-mkdir -p .github
-cp $DOCS_NUM/adapters/copilot/.github/copilot-instructions.md .github/
-```
-자연어 트리거
+설치 후에는 각 에이전트에서 슬래시 커맨드(`/docs-new`, `/docs-migrate`, `/docs-rollback`) 또는 자연어 트리거("create doc", "번호 매겨줘")가 활성화됩니다.
 
 ## 문서
 
