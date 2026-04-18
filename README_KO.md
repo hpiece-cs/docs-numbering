@@ -284,7 +284,8 @@ docs-numbering uninstall --user --all
 
 - [사용자 매뉴얼 (영어)](docs/USER_MANUAL.md)
 - [사용자 매뉴얼 (한국어)](docs/USER_MANUAL_KO.md)
-- [릴리스 노트](RELEASE.md)
+- [릴리스 노트 (한국어)](RELEASE_KO.md)
+- [릴리스 노트 (영어)](RELEASE.md)
 
 ## 요구사항
 
