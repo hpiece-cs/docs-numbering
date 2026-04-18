@@ -802,13 +802,16 @@ The core CLI is agent-agnostic. Adapter installation is done entirely through th
 
 ### At-a-glance comparison
 
-| Agent | Scope support | Auto-setup on `npm install -g` | How to bootstrap a project | How to use |
-|-------|---------------|:-:|---------------------------|------------|
-| Claude Code | user + project | ✅ `~/.claude/` | `/docs-install` slash command | Slash + auto-trigger skill + natural language |
-| OpenCode | user + project | ✅ `~/.opencode/` | `/docs-install` slash command | Slash |
-| Gemini CLI | user + project | ✅ `~/.gemini/commands/` | `/docs-install` slash command (TOML) | Slash (TOML) |
-| Codex / Cursor / Windsurf | project only | ❌ | `docs-numbering install --agent=codex` | Natural language |
-| GitHub Copilot | project only | ❌ | `docs-numbering install --agent=copilot` | Natural language |
+| Agent | Scope support | Auto-setup on `npm install -g` | Slash command path | Bootstrap |
+|-------|---------------|:-:|--------------------|-----------|
+| Claude Code | user + project | ✅ | `~/.claude/commands/` + `~/.claude/skills/` | `/docs-install` |
+| OpenCode | user + project | ✅ | `~/.opencode/commands/` | `/docs-install` |
+| Codex CLI | user + project | ✅ | `~/.codex/prompts/` | `/docs-install` |
+| Cursor | user + project | ✅ | `~/.cursor/commands/` | `/docs-install` |
+| Gemini CLI | user + project | ✅ | `~/.gemini/commands/*.toml` | `/docs-install` |
+| Copilot CLI | user + project | ✅ | `~/.copilot/skills/*/SKILL.md` | `/docs-install` |
+| Windsurf | project only | ❌ | `.windsurf/workflows/` (per project) | `docs-numbering install --agent=windsurf` |
+| Copilot VS Code Chat | project only | ❌ | `.github/prompts/*.prompt.md` (per project) | `docs-numbering install --agent=copilot` |
 
 ---
 
@@ -900,44 +903,91 @@ docs-numbering uninstall --user --agent=gemini
 
 ---
 
-### Codex / Cursor / Windsurf (AGENTS.md)
+### Codex CLI
 
-**No user-scope support.** These tools consume project-level `AGENTS.md` and have no slash-command concept. Install per project:
+**Install** — automatic via `npm install -g`. Files: `~/.codex/prompts/docs-*.md` (markdown with `description` and `argument-hint` frontmatter; `$1`-`$9` and `$NAMED` placeholders supported).
 
-```bash
-cd my-project
-docs-numbering install --agent=codex
-```
-Merges a `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` block into `AGENTS.md` at the project root. Re-running refreshes the block — no duplication. Any other content in `AGENTS.md` is preserved.
+**Bootstrap** — `/docs-install` in Codex CLI.
 
-**Everyday usage** — natural language only:
-- "create a doc", "organize docs", "번호 매겨줘"
-- Ask the agent to run CLI: "docs-numbering install 실행해줘", "make a new doc with docs-numbering"
-- Direct CLI anytime
+**Use**
+- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Project-scope install also merges a block into `AGENTS.md` for the natural-language path used by tools that read AGENTS.md
+- Direct CLI
 
 **Uninstall**
 ```bash
-cd my-project && docs-numbering uninstall --agent=codex
+docs-numbering uninstall --user --agent=codex      # ~/.codex/prompts/
+docs-numbering uninstall --agent=codex             # project: .codex/prompts/ + AGENTS.md block
 ```
-Removes only the `docs-numbering` block from `AGENTS.md`. If the block was the only content, the file itself is deleted.
+
+---
+
+### Cursor
+
+**Install** — automatic via `npm install -g`. Files: `~/.cursor/commands/docs-*.md`. Cursor auto-discovers from both `~/.cursor/commands/` (global) and `.cursor/commands/` (project).
+
+**Bootstrap** — `/docs-install` in Cursor chat.
+
+**Use**
+- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Direct CLI
+
+**Uninstall**
+```bash
+docs-numbering uninstall --user --agent=cursor
+```
+
+---
+
+### Windsurf
+
+**No user-scope path** (Windsurf workflows are per project, walking up the directory tree to git root).
+
+**Install per project**:
+```bash
+cd my-project
+docs-numbering install --agent=windsurf
+```
+Files: `.windsurf/workflows/docs-*.md` (markdown with `description` frontmatter and numbered steps).
+
+**Use**
+- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Direct CLI
+
+**Uninstall**
+```bash
+cd my-project && docs-numbering uninstall --agent=windsurf
+```
 
 ---
 
 ### GitHub Copilot
 
-**No user-scope support.** Copilot reads `.github/copilot-instructions.md` from each repo. Install per project:
+GitHub Copilot has two surfaces with different mechanisms:
 
+**Copilot CLI (terminal)** — supports user-scope custom skills. Auto-deployed to `~/.copilot/skills/docs-*/SKILL.md` on `npm install -g`. Each skill folder contains a `SKILL.md` with YAML frontmatter (`name` becomes the slash command, `description` triggers auto-loading, optional `allowed-tools: shell` pre-approves shell execution).
+
+**Copilot in VS Code Chat** — has no user-scope filesystem path. Install per project:
 ```bash
 cd my-project
 docs-numbering install --agent=copilot
 ```
-Merges a block into `.github/copilot-instructions.md`.
+Project install includes:
+- `.github/copilot-instructions.md` (merge block) — natural-language fallback for any Copilot
+- `.github/prompts/docs-*.prompt.md` (4 files) — slash commands for VS Code Copilot Chat
+- `.github/skills/docs-*/SKILL.md` (4 dirs) — project-level skills for Copilot CLI
 
-**Everyday usage** — natural language only (same triggers as Codex). Direct CLI available.
+**Bootstrap from inside Copilot CLI** — `/docs-install` (works anywhere after global npm install).
+
+**Use**
+- Slash (Copilot CLI anywhere; VS Code Chat after project install): `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Natural language fallback: any Copilot understands "docs-numbering install 실행해줘" if `.github/copilot-instructions.md` is installed in the project
+- Direct CLI
 
 **Uninstall**
 ```bash
-cd my-project && docs-numbering uninstall --agent=copilot
+docs-numbering uninstall --user --agent=copilot    # ~/.copilot/skills/
+docs-numbering uninstall --agent=copilot           # project: .github/copilot-instructions.md block, .github/prompts/, .github/skills/
 ```
 
 ---

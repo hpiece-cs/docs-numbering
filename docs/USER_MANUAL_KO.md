@@ -811,13 +811,16 @@ docs-numbering rollback --last --locale=en
 
 ### 한눈에 비교
 
-| 에이전트 | 지원 범위 | `npm install -g` 시 자동 설정 | 프로젝트 부트스트랩 | 사용 방식 |
-|----------|----------|:-:|-------------------|-----------|
-| Claude Code | 사용자 + 프로젝트 | ✅ `~/.claude/` | `/docs-install` 슬래시 | 슬래시 + 자동 트리거 스킬 + 자연어 |
-| OpenCode | 사용자 + 프로젝트 | ✅ `~/.opencode/` | `/docs-install` 슬래시 | 슬래시 |
-| Gemini CLI | 사용자 + 프로젝트 | ✅ `~/.gemini/commands/` | `/docs-install` 슬래시 (TOML) | 슬래시 (TOML) |
-| Codex / Cursor / Windsurf | 프로젝트만 | ❌ | `docs-numbering install --agent=codex` | 자연어 |
-| GitHub Copilot | 프로젝트만 | ❌ | `docs-numbering install --agent=copilot` | 자연어 |
+| 에이전트 | 지원 범위 | `npm install -g` 시 자동 설정 | 슬래시 경로 | 부트스트랩 |
+|----------|----------|:-:|------------|-----------|
+| Claude Code | 사용자 + 프로젝트 | ✅ | `~/.claude/commands/` + `~/.claude/skills/` | `/docs-install` |
+| OpenCode | 사용자 + 프로젝트 | ✅ | `~/.opencode/commands/` | `/docs-install` |
+| Codex CLI | 사용자 + 프로젝트 | ✅ | `~/.codex/prompts/` | `/docs-install` |
+| Cursor | 사용자 + 프로젝트 | ✅ | `~/.cursor/commands/` | `/docs-install` |
+| Gemini CLI | 사용자 + 프로젝트 | ✅ | `~/.gemini/commands/*.toml` | `/docs-install` |
+| Copilot CLI | 사용자 + 프로젝트 | ✅ | `~/.copilot/skills/*/SKILL.md` | `/docs-install` |
+| Windsurf | 프로젝트만 | ❌ | `.windsurf/workflows/` (프로젝트별) | `docs-numbering install --agent=windsurf` |
+| Copilot VS Code Chat | 프로젝트만 | ❌ | `.github/prompts/*.prompt.md` (프로젝트별) | `docs-numbering install --agent=copilot` |
 
 ---
 
@@ -909,44 +912,91 @@ docs-numbering uninstall --user --agent=gemini
 
 ---
 
-### Codex / Cursor / Windsurf (AGENTS.md)
+### Codex CLI
 
-**사용자 범위 지원 없음.** 이 도구들은 프로젝트 단위 `AGENTS.md`를 읽고 슬래시 커맨드 개념이 없습니다. 프로젝트마다 설치해야 합니다:
+**설치** — `npm install -g` 시 자동. 파일: `~/.codex/prompts/docs-*.md` (마크다운, frontmatter `description` + `argument-hint`, `$1`-`$9` 및 `$NAMED` 플레이스홀더 지원).
 
-```bash
-cd my-project
-docs-numbering install --agent=codex
-```
-프로젝트 루트 `AGENTS.md`에 `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` 블록을 병합합니다. 재실행 시 같은 블록이 갱신되므로 중복되지 않습니다. `AGENTS.md`의 다른 내용은 그대로 보존됩니다.
+**부트스트랩** — Codex CLI에서 `/docs-install`.
 
-**일상 사용** — 자연어만:
-- "create a doc", "organize docs", "번호 매겨줘"
-- 에이전트에 CLI 요청: "docs-numbering install 실행해줘", "새 문서 하나 docs-numbering으로 만들어줘"
-- 언제든 직접 CLI 실행 가능
+**사용**
+- 슬래시: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 프로젝트 설치 시 자연어 트리거용 `AGENTS.md`도 병합 (AGENTS.md를 읽는 다른 도구들과 호환)
+- 직접 CLI
 
 **제거**
 ```bash
-cd my-project && docs-numbering uninstall --agent=codex
+docs-numbering uninstall --user --agent=codex      # ~/.codex/prompts/
+docs-numbering uninstall --agent=codex             # 프로젝트: .codex/prompts/ + AGENTS.md 블록
 ```
-`AGENTS.md`에서 `docs-numbering` 블록만 제거합니다. 블록이 유일한 내용이었다면 파일 자체가 삭제됩니다.
+
+---
+
+### Cursor
+
+**설치** — `npm install -g` 시 자동. 파일: `~/.cursor/commands/docs-*.md`. Cursor는 `~/.cursor/commands/`(글로벌)와 `.cursor/commands/`(프로젝트) 양쪽을 자동 탐지.
+
+**부트스트랩** — Cursor 채팅에서 `/docs-install`.
+
+**사용**
+- 슬래시: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 직접 CLI
+
+**제거**
+```bash
+docs-numbering uninstall --user --agent=cursor
+```
+
+---
+
+### Windsurf
+
+**사용자 범위 경로 없음** (Windsurf 워크플로우는 프로젝트별이며 git 루트까지 디렉토리를 거슬러 올라가며 탐색).
+
+**프로젝트마다 설치**:
+```bash
+cd my-project
+docs-numbering install --agent=windsurf
+```
+파일: `.windsurf/workflows/docs-*.md` (frontmatter `description` + 번호 매겨진 단계).
+
+**사용**
+- 슬래시: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 직접 CLI
+
+**제거**
+```bash
+cd my-project && docs-numbering uninstall --agent=windsurf
+```
 
 ---
 
 ### GitHub Copilot
 
-**사용자 범위 지원 없음.** Copilot은 레포마다 `.github/copilot-instructions.md`를 읽습니다. 프로젝트 단위로 설치:
+GitHub Copilot은 두 인터페이스가 다른 메커니즘을 사용합니다:
 
+**Copilot CLI (터미널)** — 사용자 범위 커스텀 스킬 지원. `npm install -g` 시 `~/.copilot/skills/docs-*/SKILL.md`에 자동 배치. 각 스킬 폴더는 SKILL.md를 가지며 YAML frontmatter의 `name`이 슬래시 커맨드가 되고, `description`이 자동 트리거를 결정하며, 선택적 `allowed-tools: shell`로 셸 실행 사전 승인.
+
+**Copilot VS Code Chat** — 사용자 범위 파일 경로 없음. 프로젝트마다 설치:
 ```bash
 cd my-project
 docs-numbering install --agent=copilot
 ```
-`.github/copilot-instructions.md`에 블록 병합.
+프로젝트 설치 항목:
+- `.github/copilot-instructions.md` (병합 블록) — 모든 Copilot의 자연어 폴백
+- `.github/prompts/docs-*.prompt.md` (4개) — VS Code Copilot Chat 슬래시 커맨드
+- `.github/skills/docs-*/SKILL.md` (4개 폴더) — Copilot CLI 프로젝트 스킬
 
-**일상 사용** — 자연어만 (Codex와 동일). 직접 CLI도 가능.
+**Copilot CLI 안에서 부트스트랩** — `/docs-install` (전역 npm 설치 후 어디서든 동작).
+
+**사용**
+- 슬래시 (Copilot CLI는 어디서나, VS Code Chat은 프로젝트 설치 후): `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 자연어 폴백 (어떤 Copilot이든, 프로젝트에 `.github/copilot-instructions.md`가 설치되어 있으면): "docs-numbering install 실행해줘" 등
+- 직접 CLI
 
 **제거**
 ```bash
-cd my-project && docs-numbering uninstall --agent=copilot
+docs-numbering uninstall --user --agent=copilot    # ~/.copilot/skills/
+docs-numbering uninstall --agent=copilot           # 프로젝트: .github/copilot-instructions.md 블록, .github/prompts/, .github/skills/
 ```
 
 ---

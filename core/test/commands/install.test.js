@@ -257,31 +257,93 @@ describe('install: --user scope', () => {
     expect(existsSync(join(home.dir, 'GEMINI.md'))).toBe(false);
   });
 
-  it('skips codex and copilot under --user --all', async () => {
+  it('--user --all installs CLI agents (claude-code, opencode, codex, cursor, gemini, copilot) but skips windsurf', async () => {
     const project = mkProject();
     const home = mkProject();
     const r = await runInstall({
       cwd: project.dir, homeDir: home.dir,
       flags: { user: true, all: true }
     });
-    expect(r.targets).toContain('claude-code');
-    expect(r.targets).toContain('opencode');
-    expect(r.targets).toContain('gemini');
-    expect(r.targets).not.toContain('codex');
-    expect(r.targets).not.toContain('copilot');
+    expect(r.targets).toEqual(expect.arrayContaining(['claude-code', 'opencode', 'codex', 'cursor', 'gemini', 'copilot']));
+    expect(r.targets).not.toContain('windsurf');
+    // No project-level merge files should appear at home
     expect(existsSync(join(home.dir, 'AGENTS.md'))).toBe(false);
     expect(existsSync(join(home.dir, '.github/copilot-instructions.md'))).toBe(false);
   });
 
-  it('explicit --user --agent=codex is skipped with marker', async () => {
+  it('explicit --user --agent=windsurf is skipped with marker', async () => {
     const project = mkProject();
     const home = mkProject();
     const r = await runInstall({
       cwd: project.dir, homeDir: home.dir,
-      flags: { user: true, agent: 'codex' }
+      flags: { user: true, agent: 'windsurf' }
     });
     expect(r.results[0].skipped).toBe('user-scope-unsupported');
+    expect(existsSync(join(home.dir, '.windsurf/workflows'))).toBe(false);
+  });
+
+  it('installs codex prompts at user scope but not AGENTS.md', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    await runInstall({
+      cwd: project.dir, homeDir: home.dir,
+      flags: { user: true, agent: 'codex' }
+    });
+    expect(existsSync(join(home.dir, '.codex/prompts/docs-install.md'))).toBe(true);
     expect(existsSync(join(home.dir, 'AGENTS.md'))).toBe(false);
+  });
+
+  it('installs cursor commands at user scope', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    await runInstall({
+      cwd: project.dir, homeDir: home.dir,
+      flags: { user: true, agent: 'cursor' }
+    });
+    expect(existsSync(join(home.dir, '.cursor/commands/docs-install.md'))).toBe(true);
+  });
+
+  it('installs copilot CLI skills at user scope (not project files)', async () => {
+    const project = mkProject();
+    const home = mkProject();
+    await runInstall({
+      cwd: project.dir, homeDir: home.dir,
+      flags: { user: true, agent: 'copilot' }
+    });
+    expect(existsSync(join(home.dir, '.copilot/skills/docs-install/SKILL.md'))).toBe(true);
+    expect(existsSync(join(home.dir, '.copilot/skills/docs-new/SKILL.md'))).toBe(true);
+    expect(existsSync(join(home.dir, '.github/copilot-instructions.md'))).toBe(false);
+    expect(existsSync(join(home.dir, '.github/prompts'))).toBe(false);
+  });
+
+  it('project copilot install includes instructions, prompts, and skills', async () => {
+    const project = mkProject();
+    await runInstall({
+      cwd: project.dir, homeDir: project.dir,
+      flags: { agent: 'copilot' }
+    });
+    expect(existsSync(join(project.dir, '.github/copilot-instructions.md'))).toBe(true);
+    expect(existsSync(join(project.dir, '.github/prompts/docs-install.prompt.md'))).toBe(true);
+    expect(existsSync(join(project.dir, '.github/skills/docs-install/SKILL.md'))).toBe(true);
+  });
+
+  it('project codex install includes prompts and AGENTS.md merge', async () => {
+    const project = mkProject();
+    await runInstall({
+      cwd: project.dir, homeDir: project.dir,
+      flags: { agent: 'codex' }
+    });
+    expect(existsSync(join(project.dir, '.codex/prompts/docs-install.md'))).toBe(true);
+    expect(readFileSync(join(project.dir, 'AGENTS.md'), 'utf8')).toMatch(/docs-numbering:start/);
+  });
+
+  it('project windsurf install creates workflows', async () => {
+    const project = mkProject();
+    await runInstall({
+      cwd: project.dir, homeDir: project.dir,
+      flags: { agent: 'windsurf' }
+    });
+    expect(existsSync(join(project.dir, '.windsurf/workflows/docs-install.md'))).toBe(true);
   });
 
   it('gemini project scope still installs GEMINI.md (merge)', async () => {

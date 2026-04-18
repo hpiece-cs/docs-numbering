@@ -125,17 +125,20 @@ See [User Manual](docs/USER_MANUAL.md) for full configuration reference.
 
 ## Agent Integration
 
-`npm install -g @hpiece/docs-numbering` runs a postinstall hook that deploys user-scope slash commands for every agent that supports them. The two agents that don't (Codex/Cursor/Windsurf, GitHub Copilot) are project-scope only and driven by natural language.
+`npm install -g @hpiece/docs-numbering` runs a postinstall hook that deploys user-scope slash commands for every agent that supports them — 6 of 8 surfaces work uniformly with `/docs-install` from any project. Windsurf and Copilot's VS Code Chat have no user-scope filesystem path, so they need a one-time `docs-numbering install` per project.
 
 ### At-a-glance
 
-| Agent | Auto-setup on global install? | Activation | Usage |
-|-------|:-:|-----------|-------|
-| Claude Code | ✅ `~/.claude/` | `/docs-install` | Slash commands + auto-trigger skill + natural language |
-| OpenCode | ✅ `~/.opencode/` | `/docs-install` | Slash commands |
-| Gemini CLI | ✅ `~/.gemini/commands/` | `/docs-install` | Slash commands (TOML) |
-| Codex / Cursor / Windsurf | ❌ per-project only | `docs-numbering install --agent=codex` | Natural language |
-| GitHub Copilot | ❌ per-project only | `docs-numbering install --agent=copilot` | Natural language |
+| Agent | Auto-setup on global install? | `/docs-install` slash | Project-scope install |
+|-------|:-:|:-:|------|
+| Claude Code | ✅ `~/.claude/` | ✅ | `/docs-install` or CLI |
+| OpenCode | ✅ `~/.opencode/` | ✅ | `/docs-install` or CLI |
+| Codex CLI | ✅ `~/.codex/prompts/` | ✅ | `/docs-install` or CLI |
+| Cursor | ✅ `~/.cursor/commands/` | ✅ | `/docs-install` or CLI |
+| Gemini CLI | ✅ `~/.gemini/commands/` (TOML) | ✅ | `/docs-install` or CLI |
+| Copilot CLI | ✅ `~/.copilot/skills/` | ✅ | `/docs-install` or CLI |
+| Windsurf | ❌ project only | ✅ (after project install) | `docs-numbering install --agent=windsurf` |
+| Copilot VS Code Chat | ❌ project only (`.github/prompts/`) | ✅ (after project install) | `docs-numbering install --agent=copilot` |
 
 ---
 
@@ -191,32 +194,63 @@ Creates `.docs-numbering.yaml` and installs project-level adapters (auto-detecti
 
 ---
 
-### Codex / Cursor / Windsurf (AGENTS.md)
+### Codex CLI
 
-**Install** — per project only (no user-scope slash concept):
+**Install** — automatic on `npm install -g`. Files: `~/.codex/prompts/docs-*.md`.
+
+**Bootstrap** — in Codex CLI: `/docs-install`
+
+**Use**
+- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Project install (`docs-numbering install --agent=codex`) also merges `AGENTS.md` for the natural-language path
+- Direct CLI
+
+---
+
+### Cursor
+
+**Install** — automatic on `npm install -g`. Files: `~/.cursor/commands/docs-*.md` (also project-level `.cursor/commands/`).
+
+**Bootstrap** — in Cursor chat: `/docs-install`
+
+**Use**
+- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Direct CLI
+
+---
+
+### Windsurf
+
+**No user-scope slash path.** Install per project:
 ```bash
 cd my-project
-docs-numbering install --agent=codex
+docs-numbering install --agent=windsurf
 ```
-Merges a `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` block into `AGENTS.md` at the project root. Pre-existing `AGENTS.md` content is preserved.
+Files: `.windsurf/workflows/docs-*.md` (Windsurf walks up to git root).
 
-**Use** — natural language only:
-- "create a doc", "organize docs", "번호 매겨줘"
-- Or ask the agent: "docs-numbering install 실행해줘" / "docs-numbering new ..."
+**Use**
+- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
 - Direct CLI
 
 ---
 
 ### GitHub Copilot
 
-**Install** — per project only:
+Two surfaces with different mechanisms:
+
+**Copilot CLI** — automatic on `npm install -g`. Files: `~/.copilot/skills/docs-*/SKILL.md`. Slash commands work in any project.
+
+**Copilot VS Code Chat** — per project only:
 ```bash
 cd my-project
 docs-numbering install --agent=copilot
 ```
-Merges a block into `.github/copilot-instructions.md`.
+Installs `.github/copilot-instructions.md` (merge), `.github/prompts/docs-*.prompt.md` (slash commands for VS Code Chat), and `.github/skills/docs-*/SKILL.md` (project-level skills for Copilot CLI).
 
-**Use** — natural language only (same as Codex). Direct CLI available.
+**Use**
+- Slash (Copilot CLI anywhere, VS Code Chat after project install): `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Natural language fallback (any Copilot): "docs-numbering install 실행해줘" 등
+- Direct CLI
 
 ---
 
@@ -227,7 +261,7 @@ Merges a block into `.github/copilot-instructions.md`.
 docs-numbering install
 
 # Target a specific agent
-docs-numbering install --agent=<claude-code|opencode|codex|gemini|copilot>
+docs-numbering install --agent=<claude-code|opencode|codex|cursor|windsurf|gemini|copilot>
 docs-numbering install --all              # every supported adapter
 
 # User scope (home directory)

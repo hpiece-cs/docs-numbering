@@ -125,17 +125,20 @@ slug:
 
 ## 에이전트 연동
 
-`npm install -g @hpiece/docs-numbering` 시 postinstall 훅이 사용자 범위 슬래시 커맨드를 지원하는 에이전트들에 자동 배치합니다. 슬래시 개념이 없는 두 에이전트(Codex/Cursor/Windsurf, GitHub Copilot)는 프로젝트 단위 설치 + 자연어 트리거만 지원합니다.
+`npm install -g @hpiece/docs-numbering` 시 postinstall 훅이 사용자 범위 슬래시 커맨드를 지원하는 6개 인터페이스에 자동 배치합니다. Windsurf와 Copilot의 VS Code Chat은 사용자 범위 파일 경로가 표준화되지 않아 프로젝트마다 1회 `docs-numbering install`이 필요합니다.
 
 ### 한눈에 보기
 
-| 에이전트 | 전역 설치 시 자동 설정? | 활성화 방법 | 사용 방식 |
-|----------|:-:|-----------|-----------|
-| Claude Code | ✅ `~/.claude/` | `/docs-install` | 슬래시 + 자동 트리거 스킬 + 자연어 |
-| OpenCode | ✅ `~/.opencode/` | `/docs-install` | 슬래시 |
-| Gemini CLI | ✅ `~/.gemini/commands/` | `/docs-install` | 슬래시 (TOML) |
-| Codex / Cursor / Windsurf | ❌ 프로젝트 단위만 | `docs-numbering install --agent=codex` | 자연어 |
-| GitHub Copilot | ❌ 프로젝트 단위만 | `docs-numbering install --agent=copilot` | 자연어 |
+| 에이전트 | 전역 설치 시 자동 설정? | `/docs-install` 슬래시 | 프로젝트 단위 설치 |
+|----------|:-:|:-:|------|
+| Claude Code | ✅ `~/.claude/` | ✅ | `/docs-install` 또는 CLI |
+| OpenCode | ✅ `~/.opencode/` | ✅ | `/docs-install` 또는 CLI |
+| Codex CLI | ✅ `~/.codex/prompts/` | ✅ | `/docs-install` 또는 CLI |
+| Cursor | ✅ `~/.cursor/commands/` | ✅ | `/docs-install` 또는 CLI |
+| Gemini CLI | ✅ `~/.gemini/commands/` (TOML) | ✅ | `/docs-install` 또는 CLI |
+| Copilot CLI | ✅ `~/.copilot/skills/` | ✅ | `/docs-install` 또는 CLI |
+| Windsurf | ❌ 프로젝트만 | ✅ (프로젝트 설치 후) | `docs-numbering install --agent=windsurf` |
+| Copilot VS Code Chat | ❌ 프로젝트만 (`.github/prompts/`) | ✅ (프로젝트 설치 후) | `docs-numbering install --agent=copilot` |
 
 ---
 
@@ -191,32 +194,63 @@ npm install -g @hpiece/docs-numbering
 
 ---
 
-### Codex / Cursor / Windsurf (AGENTS.md)
+### Codex CLI
 
-**설치** — 프로젝트 단위만 (사용자 범위 슬래시 개념 없음):
+**설치** — `npm install -g` 시 자동. 파일: `~/.codex/prompts/docs-*.md`
+
+**부트스트랩** — Codex CLI에서: `/docs-install`
+
+**사용**
+- 슬래시: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 프로젝트 설치(`docs-numbering install --agent=codex`) 시 자연어 트리거용 `AGENTS.md`도 병합
+- 직접 CLI
+
+---
+
+### Cursor
+
+**설치** — `npm install -g` 시 자동. 파일: `~/.cursor/commands/docs-*.md` (프로젝트 단위 `.cursor/commands/`도 가능).
+
+**부트스트랩** — Cursor 채팅에서: `/docs-install`
+
+**사용**
+- 슬래시: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 직접 CLI
+
+---
+
+### Windsurf
+
+**사용자 범위 슬래시 경로 없음.** 프로젝트마다 설치:
 ```bash
 cd my-project
-docs-numbering install --agent=codex
+docs-numbering install --agent=windsurf
 ```
-프로젝트 루트 `AGENTS.md`에 `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` 블록을 병합합니다. 기존 `AGENTS.md` 내용은 보존됩니다.
+파일: `.windsurf/workflows/docs-*.md` (Windsurf가 git 루트까지 탐색).
 
-**사용** — 자연어만:
-- "create a doc", "organize docs", "번호 매겨줘"
-- 에이전트에게 요청: "docs-numbering install 실행해줘" / "docs-numbering new ..."
+**사용**
+- 슬래시: `/docs-new`, `/docs-migrate`, `/docs-rollback`
 - 직접 CLI
 
 ---
 
 ### GitHub Copilot
 
-**설치** — 프로젝트 단위만:
+두 인터페이스가 다르게 동작:
+
+**Copilot CLI** — `npm install -g` 시 자동. 파일: `~/.copilot/skills/docs-*/SKILL.md`. 어떤 프로젝트에서도 슬래시 동작.
+
+**Copilot VS Code Chat** — 프로젝트마다 설치:
 ```bash
 cd my-project
 docs-numbering install --agent=copilot
 ```
-`.github/copilot-instructions.md`에 블록 병합.
+설치 항목: `.github/copilot-instructions.md`(병합), `.github/prompts/docs-*.prompt.md`(VS Code Chat 슬래시), `.github/skills/docs-*/SKILL.md`(Copilot CLI 프로젝트 스킬).
 
-**사용** — 자연어만 (Codex와 동일). 직접 CLI도 가능.
+**사용**
+- 슬래시 (Copilot CLI는 어디서나, VS Code Chat은 프로젝트 설치 후): `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 자연어 폴백 (어떤 Copilot이든): "docs-numbering install 실행해줘" 등
+- 직접 CLI
 
 ---
 
@@ -227,7 +261,7 @@ docs-numbering install --agent=copilot
 docs-numbering install
 
 # 특정 에이전트 지정
-docs-numbering install --agent=<claude-code|opencode|codex|gemini|copilot>
+docs-numbering install --agent=<claude-code|opencode|codex|cursor|windsurf|gemini|copilot>
 docs-numbering install --all              # 지원 어댑터 모두
 
 # 사용자 범위(홈 디렉토리)
