@@ -125,61 +125,126 @@ See [User Manual](docs/USER_MANUAL.md) for full configuration reference.
 
 ## Agent Integration
 
-Adapters are installed with the built-in `install` command — no manual `ln -s`/`cp` steps needed.
+`npm install -g @hpiece/docs-numbering` runs a postinstall hook that deploys user-scope slash commands for every agent that supports them. The two agents that don't (Codex/Cursor/Windsurf, GitHub Copilot) are project-scope only and driven by natural language.
 
+### At-a-glance
+
+| Agent | Auto-setup on global install? | Activation | Usage |
+|-------|:-:|-----------|-------|
+| Claude Code | ✅ `~/.claude/` | `/docs-install` | Slash commands + auto-trigger skill + natural language |
+| OpenCode | ✅ `~/.opencode/` | `/docs-install` | Slash commands |
+| Gemini CLI | ✅ `~/.gemini/commands/` | `/docs-install` | Slash commands (TOML) |
+| Codex / Cursor / Windsurf | ❌ per-project only | `docs-numbering install --agent=codex` | Natural language |
+| GitHub Copilot | ❌ per-project only | `docs-numbering install --agent=copilot` | Natural language |
+
+---
+
+### Claude Code
+
+**Install** — automatic:
+```bash
+npm install -g @hpiece/docs-numbering
+```
+Deploys `~/.claude/skills/docs-numbering` + `~/.claude/commands/docs-*.md`.
+
+**Bootstrap a project** — inside Claude Code, type:
+```
+/docs-install
+```
+Creates `.docs-numbering.yaml` and installs project-level adapters (auto-detection).
+
+**Use**
+- Slash: `/docs-new "title"`, `/docs-migrate`, `/docs-rollback`
+- Auto-trigger skill: "번호 매겨줘", "문서로 저장해줘", "organize docs" 등 자연어
+- Direct CLI: `docs-numbering new ...`
+
+---
+
+### OpenCode
+
+**Install** — automatic on `npm install -g`. Files: `~/.opencode/commands/docs-*.md`.
+
+**Bootstrap** — in OpenCode chat:
+```
+/docs-install
+```
+
+**Use**
+- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Direct CLI
+
+---
+
+### Gemini CLI
+
+**Install** — automatic on `npm install -g`. Files: `~/.gemini/commands/docs-*.toml` (Gemini's TOML custom command format).
+
+**Bootstrap** — in Gemini CLI:
+```
+/docs-install
+```
+
+**Use**
+- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Optional per-project `GEMINI.md` merge block: `docs-numbering install --agent=gemini` in the project
+- Direct CLI
+
+---
+
+### Codex / Cursor / Windsurf (AGENTS.md)
+
+**Install** — per project only (no user-scope slash concept):
 ```bash
 cd my-project
-
-# Auto-detect agents and install adapters.
-# Creates .docs-numbering.yaml automatically if missing — no separate `init` needed.
-docs-numbering install
-
-# Or target a specific agent
-docs-numbering install --agent=claude-code
-docs-numbering install --agent=codex --force
-docs-numbering install --all              # install every supported adapter
-docs-numbering install --dry-run          # preview without writing
-docs-numbering install --no-init          # don't auto-create config
-
-# Remove
-docs-numbering uninstall --agent=claude-code
-docs-numbering uninstall --all
+docs-numbering install --agent=codex
 ```
+Merges a `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` block into `AGENTS.md` at the project root. Pre-existing `AGENTS.md` content is preserved.
 
-### User-scope install — `/docs-install` in every project
+**Use** — natural language only:
+- "create a doc", "organize docs", "번호 매겨줘"
+- Or ask the agent: "docs-numbering install 실행해줘" / "docs-numbering new ..."
+- Direct CLI
 
-Installing the npm package globally (`npm install -g @hpiece/docs-numbering`) also runs a postinstall hook that deploys slash commands to your home directory for every supported agent that has user-scope semantics. Inside the chat of any project you open, `/docs-install` bootstraps the project.
+---
+
+### GitHub Copilot
+
+**Install** — per project only:
+```bash
+cd my-project
+docs-numbering install --agent=copilot
+```
+Merges a block into `.github/copilot-instructions.md`.
+
+**Use** — natural language only (same as Codex). Direct CLI available.
+
+---
+
+### Install command reference
 
 ```bash
-# Installed automatically by 'npm install -g', or manually:
-docs-numbering install --user --all
+# Auto-detect agents in the current project
+docs-numbering install
+
+# Target a specific agent
+docs-numbering install --agent=<claude-code|opencode|codex|gemini|copilot>
+docs-numbering install --all              # every supported adapter
+
+# User scope (home directory)
+docs-numbering install --user --all       # same as postinstall hook
+
+# Preview / control
+docs-numbering install --dry-run
+docs-numbering install --force            # overwrite existing
+docs-numbering install --no-init          # skip auto-creating .docs-numbering.yaml
+
+# Remove
+docs-numbering uninstall --agent=<name>
+docs-numbering uninstall --all
+docs-numbering uninstall --user --all
 ```
 
-**Slash commands available in every project** (user-scope):
-
-| Agent | Location | Available commands |
-|-------|----------|-------------------|
-| Claude Code | `~/.claude/commands/` + `~/.claude/skills/docs-numbering` | `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` + auto-trigger skill |
-| OpenCode | `~/.opencode/commands/` | `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` |
-| Gemini CLI | `~/.gemini/commands/*.toml` | `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback` |
-| Codex / Cursor / Windsurf | — | **Natural language** (no slash command concept); use "docs-numbering install", "번호 매겨줘" etc. |
-| GitHub Copilot | — | **Natural language** only |
-
-`/docs-install` runs `docs-numbering install` in the current project — creating `.docs-numbering.yaml` and deploying project-level adapters — without leaving the chat.
-
-### Supported agents
-
-| Agent | Detection | Install target | Default mode |
-|-------|-----------|----------------|--------------|
-| Claude Code | `.claude/` | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | symlink |
-| OpenCode | `.opencode/` | `.opencode/commands/*.md` | copy |
-| Codex / Cursor / Windsurf | `.cursor/`, `.codex/`, `.windsurf/`, `AGENTS.md` | `AGENTS.md` | merge |
-| Gemini CLI | `.gemini/`, `GEMINI.md` | `GEMINI.md` | merge |
-| GitHub Copilot | `.github/` | `.github/copilot-instructions.md` | merge |
-
-**Modes** — `--mode=link` (symlink, updates flow through), `--mode=copy` (standalone snapshot), `--mode=merge` (insert or refresh a `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` block without clobbering existing content).
-
-After install, slash commands (`/docs-new`, `/docs-migrate`, `/docs-rollback`) or natural-language triggers ("create doc", "번호 매겨줘") become available in the corresponding agent.
+**Install modes** — `--mode=link` (symlink, updates flow through), `--mode=copy` (standalone), `--mode=merge` (block insertion without clobbering existing content). Defaults differ per agent; see the [User Manual](docs/USER_MANUAL.md#install--auto-install-adapters).
 
 ## Documentation
 

@@ -807,50 +807,153 @@ docs-numbering rollback --last --locale=en
 
 ## 에이전트 연동
 
-코어 CLI는 에이전트에 구애받지 않습니다. 어댑터 설치는 [`install` 명령](#install--어댑터-자동-설치) 하나로 끝납니다.
+코어 CLI는 에이전트에 구애받지 않으며, 어댑터 설치는 전부 [`install` 명령](#install--어댑터-자동-설치)으로 이뤄집니다. 아래에서 에이전트별 설치 → 부트스트랩 → 사용 흐름을 정리합니다.
 
-### 권장 워크플로우
+### 한눈에 비교
+
+| 에이전트 | 지원 범위 | `npm install -g` 시 자동 설정 | 프로젝트 부트스트랩 | 사용 방식 |
+|----------|----------|:-:|-------------------|-----------|
+| Claude Code | 사용자 + 프로젝트 | ✅ `~/.claude/` | `/docs-install` 슬래시 | 슬래시 + 자동 트리거 스킬 + 자연어 |
+| OpenCode | 사용자 + 프로젝트 | ✅ `~/.opencode/` | `/docs-install` 슬래시 | 슬래시 |
+| Gemini CLI | 사용자 + 프로젝트 | ✅ `~/.gemini/commands/` | `/docs-install` 슬래시 (TOML) | 슬래시 (TOML) |
+| Codex / Cursor / Windsurf | 프로젝트만 | ❌ | `docs-numbering install --agent=codex` | 자연어 |
+| GitHub Copilot | 프로젝트만 | ❌ | `docs-numbering install --agent=copilot` | 자연어 |
+
+---
+
+### Claude Code
+
+**CLI 설치** (전역 1회):
+```bash
+npm install -g @hpiece/docs-numbering
+```
+postinstall 훅이 다음 파일들을 배치합니다:
+- `~/.claude/skills/docs-numbering/SKILL.md` (자동 트리거 스킬)
+- `~/.claude/commands/docs-install.md`, `docs-new.md`, `docs-migrate.md`, `docs-rollback.md`
+
+**프로젝트 부트스트랩** — Claude Code 채팅에서:
+```
+/docs-install
+```
+현재 프로젝트의 cwd에서 `docs-numbering install`이 실행됩니다: `.docs-numbering.yaml` 생성 + 에이전트 감지 + 프로젝트 단위 어댑터 배치 (`.claude/` 하위에 심볼릭 링크).
+
+**일상 사용**
+- 슬래시 커맨드: `/docs-new "제목"`, `/docs-migrate`, `/docs-rollback`
+- 자동 트리거 스킬 — "번호 매겨줘", "문서로 저장해줘", "정리해줘", "save this as a BMAD PRD" 같은 자연어에 반응
+- 터미널이나 에이전트 셸 도구로 직접 CLI: `docs-numbering new "..." --method=... --phase=...`
+
+**제거**
+```bash
+# 사용자 범위(슬래시 + 스킬)
+docs-numbering uninstall --user --agent=claude-code
+
+# 프로젝트 범위만
+cd my-project && docs-numbering uninstall --agent=claude-code
+```
+
+---
+
+### OpenCode
+
+**CLI 설치** (동일한 1회 단계):
+```bash
+npm install -g @hpiece/docs-numbering
+```
+postinstall이 `~/.opencode/commands/docs-*.md` 4개 파일을 복사 모드로 배치합니다.
+
+**부트스트랩** — OpenCode 채팅에서:
+```
+/docs-install
+```
+
+**일상 사용**
+- 슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 직접 CLI
+
+**제거**
+```bash
+docs-numbering uninstall --user --agent=opencode
+```
+
+---
+
+### Gemini CLI
+
+**CLI 설치**:
+```bash
+npm install -g @hpiece/docs-numbering
+```
+postinstall이 `~/.gemini/commands/docs-*.toml` 4개 파일(Gemini 커스텀 커맨드 TOML 포맷)을 배치합니다.
+
+**부트스트랩** — Gemini CLI에서:
+```
+/docs-install
+```
+
+**일상 사용**
+- 슬래시 커맨드: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- 직접 CLI
+
+**선택: 프로젝트 단위 `GEMINI.md`**
+팀 전체에 docs-numbering 사용 방침을 커밋해두고 싶을 때:
+```bash
+cd my-project
+docs-numbering install --agent=gemini
+```
+프로젝트 루트 `GEMINI.md`에 블록 병합(merge 모드, 기존 내용 보존).
+
+**제거**
+```bash
+docs-numbering uninstall --user --agent=gemini
+```
+
+---
+
+### Codex / Cursor / Windsurf (AGENTS.md)
+
+**사용자 범위 지원 없음.** 이 도구들은 프로젝트 단위 `AGENTS.md`를 읽고 슬래시 커맨드 개념이 없습니다. 프로젝트마다 설치해야 합니다:
 
 ```bash
 cd my-project
-docs-numbering install           # 자동 init + 자동 감지 + 설치
+docs-numbering install --agent=codex
 ```
+프로젝트 루트 `AGENTS.md`에 `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` 블록을 병합합니다. 재실행 시 같은 블록이 갱신되므로 중복되지 않습니다. `AGENTS.md`의 다른 내용은 그대로 보존됩니다.
 
-한 명령으로 모든 단계가 끝납니다: `.docs-numbering.yaml`이 없으면 `install`이 먼저 생성한 뒤 어댑터를 배치합니다. `docs-numbering init`을 별도로 실행하는 건 설정 파일만 만들고 어댑터는 필요 없을 때나 `--global` 옵션을 쓸 때에 한합니다.
+**일상 사용** — 자연어만:
+- "create a doc", "organize docs", "번호 매겨줘"
+- 에이전트에 CLI 요청: "docs-numbering install 실행해줘", "새 문서 하나 docs-numbering으로 만들어줘"
+- 언제든 직접 CLI 실행 가능
 
-`install`이 현재 프로젝트를 스캔해 `.claude/`, `.opencode/`, `.github/`, `AGENTS.md`, `GEMINI.md` 등을 확인하고 해당 어댑터를 알맞은 방식(심볼릭 링크 / 복사 / 블록 병합)으로 배치합니다.
-
-**에이전트 채팅 안에서** (Claude Code, OpenCode, Codex 등): 에이전트에게 "프로젝트 디렉토리에서 `docs-numbering install` 실행해줘"라고 요청하면 됩니다. 터미널로 전환할 필요 없이 에이전트가 Bash/셸 도구로 바로 실행합니다. 이미 에이전트 세션 안에 있을 때의 최초 설치 권장 방식입니다.
-
-특정 에이전트만 원할 때:
+**제거**
 ```bash
-docs-numbering install --agent=claude-code
-docs-numbering install --agent=opencode
-docs-numbering install --agent=codex      # AGENTS.md
-docs-numbering install --agent=gemini     # GEMINI.md
-docs-numbering install --agent=copilot    # .github/copilot-instructions.md
+cd my-project && docs-numbering uninstall --agent=codex
 ```
+`AGENTS.md`에서 `docs-numbering` 블록만 제거합니다. 블록이 유일한 내용이었다면 파일 자체가 삭제됩니다.
 
-지원하는 모든 에이전트에 한 번에 적용:
+---
+
+### GitHub Copilot
+
+**사용자 범위 지원 없음.** Copilot은 레포마다 `.github/copilot-instructions.md`를 읽습니다. 프로젝트 단위로 설치:
+
 ```bash
-docs-numbering install --all
+cd my-project
+docs-numbering install --agent=copilot
+```
+`.github/copilot-instructions.md`에 블록 병합.
+
+**일상 사용** — 자연어만 (Codex와 동일). 직접 CLI도 가능.
+
+**제거**
+```bash
+cd my-project && docs-numbering uninstall --agent=copilot
 ```
 
-> 전체 플래그와 모드 설명(`link`/`copy`/`merge`), 감지 규칙, 병합 블록 마커는 [`install` 명령 섹션](#install--어댑터-자동-설치)을 참조하세요.
-
-### 어댑터 요약
-
-| 에이전트 | 설치 대상 | 기본 모드 | 활성화 방식 |
-|----------|----------|----------|-------------|
-| Claude Code | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | `link` | 슬래시 커맨드 (`/docs-new`, `/docs-migrate`, `/docs-rollback`) + 스킬 자동 트리거 |
-| OpenCode | `.opencode/commands/*.md` | `copy` | 슬래시 커맨드 (`/docs-new`, `/docs-migrate`, `/docs-rollback`) |
-| Codex / Cursor / Windsurf | `AGENTS.md` (루트) | `merge` | 자연어 트리거 ("create a doc", "번호 매겨줘" 등) |
-| Gemini CLI | `GEMINI.md` (루트) | `merge` | 자연어 트리거 |
-| GitHub Copilot | `.github/copilot-instructions.md` | `merge` | 자연어 트리거 |
+---
 
 ### 수동 설치 (참고)
 
-`install` 명령을 사용할 수 없는 환경(예: CLI 없이 어댑터만 이식)에서는 저장소의 `adapters/<에이전트>/` 아래 파일을 직접 복사하거나 심볼릭 링크해도 동일하게 동작합니다. 루트 파일(`AGENTS.md`, `GEMINI.md`, `copilot-instructions.md`)은 기존 내용을 유지하려면 `<!-- docs-numbering:start -->` ~ `<!-- docs-numbering:end -->` 블록 형태로 삽입하세요.
+`install` 명령을 사용할 수 없는 환경(예: CLI 없이 어댑터 파일만 이식)에서는 저장소의 `core/adapters/<에이전트>/` 아래 파일을 직접 복사하거나 심볼릭 링크해도 동일하게 동작합니다. 루트 파일(`AGENTS.md`, `GEMINI.md`, `copilot-instructions.md`)은 기존 내용을 유지하려면 `<!-- docs-numbering:start -->` ~ `<!-- docs-numbering:end -->` 블록 형태로 삽입하세요.
 
 ---
 

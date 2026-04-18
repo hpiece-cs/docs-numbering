@@ -798,50 +798,153 @@ docs-numbering rollback --last --locale=en
 
 ## Agent Integration
 
-The core CLI is agent-agnostic. Adapter installation is done entirely through the [`install` command](#install--auto-install-adapters) — no manual `ln -s` or `cp` required.
+The core CLI is agent-agnostic. Adapter installation is done entirely through the [`install` command](#install--auto-install-adapters). The sections below walk through install → bootstrap → usage for each supported agent.
 
-### Recommended Workflow
+### At-a-glance comparison
+
+| Agent | Scope support | Auto-setup on `npm install -g` | How to bootstrap a project | How to use |
+|-------|---------------|:-:|---------------------------|------------|
+| Claude Code | user + project | ✅ `~/.claude/` | `/docs-install` slash command | Slash + auto-trigger skill + natural language |
+| OpenCode | user + project | ✅ `~/.opencode/` | `/docs-install` slash command | Slash |
+| Gemini CLI | user + project | ✅ `~/.gemini/commands/` | `/docs-install` slash command (TOML) | Slash (TOML) |
+| Codex / Cursor / Windsurf | project only | ❌ | `docs-numbering install --agent=codex` | Natural language |
+| GitHub Copilot | project only | ❌ | `docs-numbering install --agent=copilot` | Natural language |
+
+---
+
+### Claude Code
+
+**Install the CLI** (one time, globally):
+```bash
+npm install -g @hpiece/docs-numbering
+```
+The postinstall hook deploys:
+- `~/.claude/skills/docs-numbering/SKILL.md` (auto-trigger skill)
+- `~/.claude/commands/docs-install.md`, `docs-new.md`, `docs-migrate.md`, `docs-rollback.md`
+
+**Bootstrap a project** — in Claude Code's chat window, type:
+```
+/docs-install
+```
+This runs `docs-numbering install` against the current project's cwd: creates `.docs-numbering.yaml`, detects the agent, and deploys project-scope adapters (symlinks under `.claude/`).
+
+**Everyday usage**
+- Slash commands: `/docs-new "title"`, `/docs-migrate`, `/docs-rollback`
+- Auto-trigger skill — responds to natural language like "번호 매겨줘", "문서로 저장해줘", "organize docs", "save this as a BMAD PRD"
+- Direct CLI inside a terminal session or agent shell tool: `docs-numbering new "..." --method=... --phase=...`
+
+**Uninstall**
+```bash
+# User-scope commands (slash + skill)
+docs-numbering uninstall --user --agent=claude-code
+
+# Project-scope only
+cd my-project && docs-numbering uninstall --agent=claude-code
+```
+
+---
+
+### OpenCode
+
+**Install the CLI** (same one-time step):
+```bash
+npm install -g @hpiece/docs-numbering
+```
+Postinstall deploys `~/.opencode/commands/docs-*.md` (4 files, copy mode).
+
+**Bootstrap a project** — in OpenCode chat:
+```
+/docs-install
+```
+
+**Everyday usage**
+- Slash commands: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Direct CLI
+
+**Uninstall**
+```bash
+docs-numbering uninstall --user --agent=opencode
+```
+
+---
+
+### Gemini CLI
+
+**Install the CLI**:
+```bash
+npm install -g @hpiece/docs-numbering
+```
+Postinstall deploys `~/.gemini/commands/docs-*.toml` — 4 TOML files in Gemini's custom command format.
+
+**Bootstrap a project** — in Gemini CLI:
+```
+/docs-install
+```
+
+**Everyday usage**
+- Slash commands: `/docs-new`, `/docs-migrate`, `/docs-rollback`
+- Direct CLI
+
+**Optional: project-scope `GEMINI.md`**
+For teams that want a committed `GEMINI.md` describing docs-numbering:
+```bash
+cd my-project
+docs-numbering install --agent=gemini
+```
+This merges a block into `GEMINI.md` at the project root (merge mode — preserves existing content).
+
+**Uninstall**
+```bash
+docs-numbering uninstall --user --agent=gemini
+```
+
+---
+
+### Codex / Cursor / Windsurf (AGENTS.md)
+
+**No user-scope support.** These tools consume project-level `AGENTS.md` and have no slash-command concept. Install per project:
 
 ```bash
 cd my-project
-docs-numbering install           # auto-init + auto-detect + install
+docs-numbering install --agent=codex
 ```
+Merges a `<!-- docs-numbering:start -->…<!-- docs-numbering:end -->` block into `AGENTS.md` at the project root. Re-running refreshes the block — no duplication. Any other content in `AGENTS.md` is preserved.
 
-A single command covers everything: if `.docs-numbering.yaml` is missing, `install` creates it before deploying adapters. Run `docs-numbering init` explicitly only when you want the config without adapters, or when using `--global`.
+**Everyday usage** — natural language only:
+- "create a doc", "organize docs", "번호 매겨줘"
+- Ask the agent to run CLI: "docs-numbering install 실행해줘", "make a new doc with docs-numbering"
+- Direct CLI anytime
 
-`install` scans the current project for `.claude/`, `.opencode/`, `.github/`, `AGENTS.md`, `GEMINI.md`, etc., and deploys the matching adapters using the appropriate method (symlink / copy / block merge).
-
-**From within an agent chat** (Claude Code, OpenCode, Codex, etc.): just ask the agent to run `docs-numbering install` in the project directory. No terminal switch required — the agent executes it via its Bash/shell tool. This is the recommended first-time setup flow when you're already inside an agent session.
-
-Target a specific agent:
+**Uninstall**
 ```bash
-docs-numbering install --agent=claude-code
-docs-numbering install --agent=opencode
-docs-numbering install --agent=codex      # AGENTS.md
-docs-numbering install --agent=gemini     # GEMINI.md
-docs-numbering install --agent=copilot    # .github/copilot-instructions.md
+cd my-project && docs-numbering uninstall --agent=codex
 ```
+Removes only the `docs-numbering` block from `AGENTS.md`. If the block was the only content, the file itself is deleted.
 
-Install every supported adapter at once:
+---
+
+### GitHub Copilot
+
+**No user-scope support.** Copilot reads `.github/copilot-instructions.md` from each repo. Install per project:
+
 ```bash
-docs-numbering install --all
+cd my-project
+docs-numbering install --agent=copilot
+```
+Merges a block into `.github/copilot-instructions.md`.
+
+**Everyday usage** — natural language only (same triggers as Codex). Direct CLI available.
+
+**Uninstall**
+```bash
+cd my-project && docs-numbering uninstall --agent=copilot
 ```
 
-> See the [`install` command reference](#install--auto-install-adapters) for the full list of flags, mode semantics (`link`/`copy`/`merge`), detection rules, and merge-block markers.
+---
 
-### Adapter Summary
+### Manual installation (reference)
 
-| Agent | Install target | Default mode | Activation |
-|-------|----------------|--------------|------------|
-| Claude Code | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | `link` | Slash commands (`/docs-new`, `/docs-migrate`, `/docs-rollback`) + skill auto-trigger |
-| OpenCode | `.opencode/commands/*.md` | `copy` | Slash commands (`/docs-new`, `/docs-migrate`, `/docs-rollback`) |
-| Codex / Cursor / Windsurf | `AGENTS.md` (root) | `merge` | Natural language triggers ("create a doc", "번호 매겨줘") |
-| Gemini CLI | `GEMINI.md` (root) | `merge` | Natural language triggers |
-| GitHub Copilot | `.github/copilot-instructions.md` | `merge` | Natural language triggers |
-
-### Manual Installation (Reference)
-
-If you can't use the `install` command (e.g., shipping adapters without the CLI), copy or symlink files directly from `adapters/<agent>/` in the repository. For root-level files (`AGENTS.md`, `GEMINI.md`, `copilot-instructions.md`), wrap the content in a `<!-- docs-numbering:start -->` … `<!-- docs-numbering:end -->` block to preserve any existing file content.
+If you can't use the `install` command (e.g., shipping adapters without the CLI), copy or symlink files directly from `core/adapters/<agent>/` inside the repository. For root-level files (`AGENTS.md`, `GEMINI.md`, `copilot-instructions.md`), wrap the content in a `<!-- docs-numbering:start -->` … `<!-- docs-numbering:end -->` block to preserve any existing file content.
 
 ---
 
