@@ -34,13 +34,63 @@ A CLI tool for managing numbered markdown documentation with methodology-aware n
 
 ## Installation
 
+The npm package is not yet published. Install from the cloned repository with `npm link`:
+
 ```bash
-cd core && npm install && npm link
+git clone https://github.com/hpiece-cs/docs-numbering.git
+cd docs-numbering/core
+npm install
+npm link
 ```
 
-Ensure `~/.npm-packages/bin` is in your PATH:
+The `npm link` postinstall hook runs `docs-numbering install --user --all --no-init` automatically, so user-scope slash commands (`/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`) are deployed to all 4 supported CLIs (Claude Code, OpenCode, Gemini CLI, Copilot CLI).
+
+**Verify the install:**
 ```bash
+docs-numbering --version
+docnum --version          # shorter alias (same binary)
+```
+
+If the command is not found, your npm global bin directory is not on PATH. Add it:
+
+```bash
+# zsh
 echo 'export PATH="$HOME/.npm-packages/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+# bash
+echo 'export PATH="$HOME/.npm-packages/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+```
+
+(Your exact path may differ — run `npm prefix -g` to check. Append `/bin` to that path.)
+
+**Uninstall:**
+
+> ⚠️ `npm unlink -g` alone does **not** remove the user-scope slash commands — npm skips lifecycle hooks (including `preuninstall`) when unlinking globally-linked packages. Use one of the methods below to avoid orphaned `/docs-*` commands in your AI CLIs.
+
+**Recommended — one-shot clean uninstall:**
+```bash
+cd docs-numbering/core
+npm run unlink-all
+```
+Runs `docs-numbering uninstall --user --all` first, then `npm unlink -g`. Removes adapters from `~/.claude/`, `~/.opencode/`, `~/.gemini/`, `~/.copilot/` and the CLI symlink.
+
+**Two-step alternative** (equivalent):
+```bash
+docs-numbering uninstall --user --all           # remove slash commands / skills
+cd docs-numbering/core && npm unlink -g @hpiece/docs-numbering   # remove CLI symlink
+```
+
+**Adapters only (keep CLI):**
+```bash
+npm run uninstall-all      # from core/
+# or equivalently:
+docs-numbering uninstall --user --all
+```
+
+**Recovering from a broken state** — if you already ran `npm unlink -g` first and the slash commands are orphaned, re-link and clean up properly:
+```bash
+cd docs-numbering/core
+npm link                   # re-install the CLI
+npm run unlink-all         # then full uninstall
 ```
 
 ## Quick Start
@@ -172,52 +222,78 @@ docs-numbering rollback --last --apply # execute
 ### `install` — Auto-Install Adapters
 
 ```bash
-docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--user] [--no-init] [--dry-run]
+docs-numbering install [--agent=<names>] [--all] [--mode=<link|copy|merge>] [--force] [--user] [--no-init] [--no-interactive] [--dry-run]
 ```
 
-Installs adapter files (slash commands, skills, instructions) for a given AI agent into the current project. Replaces manual `ln -s` / `cp` steps.
+Installs adapter files (slash commands, skills, instructions) for AI agents into the current project. Replaces manual `ln -s` / `cp` steps.
 
-**Auto-init:** If `.docs-numbering.yaml` does not exist in the project, `install` creates it automatically — you no longer need a separate `docs-numbering init` step. Use `--no-init` to opt out, or `--dry-run` (which also skips init). Auto-init is skipped under `--user` scope.
+**Auto-init:** If `.docs-numbering.yaml` does not exist in the project, `install` creates it automatically — you no longer need a separate `docs-numbering init` step. Use `--no-init` to opt out. `--dry-run` and `--user` scope also skip auto-init.
 
 **User scope (`--user`):** Installs into `$HOME` instead of the current project (e.g., `~/.claude/commands/`, `~/.claude/skills/docs-numbering`). Intended as a one-time setup so slash commands like `/docs-install` are available in any project without per-project installation. Detection also runs against `$HOME`.
 
 | Flag | Description |
 |------|-------------|
-| `--agent <name>` | Target a specific agent: `claude-code`, `opencode`, `codex`, `gemini`, `copilot` |
+| `--agent <names>` | Comma-separated list of agents: `claude-code`, `opencode`, `gemini`, `copilot`. Single or multiple. |
 | `--all` | Install adapters for every supported agent |
 | `--mode <mode>` | Install method (agent-specific default): `link` (symlink), `copy`, `merge` (block insertion) |
 | `--force` | Overwrite existing files |
 | `--user` | Install into `$HOME` instead of the current project |
 | `--no-init` | Skip auto-creating `.docs-numbering.yaml` when missing |
+| `--no-interactive` | Disable the interactive picker; fall back to auto-detection |
 | `--dry-run` | Show the plan without writing anything (implies `--no-init`) |
 
-If no flags are passed, `install` scans the project and installs adapters for **detected** agents only. If nothing is detected, it prints the list of supported adapters.
+**Selection precedence:** `--agent` > `--all` > interactive picker (TTY only) > auto-detection.
+
+**Interactive picker (TTY):** If you run `docs-numbering install` with no `--agent` / `--all` in an interactive terminal, a numbered list of all supported CLIs is shown with detected ones flagged `*`. Input options:
+
+```
+Select CLIs to install (detected marked with *):
+  [ 1] * claude-code  Claude Code    (detected)
+  [ 2]   opencode     OpenCode
+  [ 3] * gemini       Gemini CLI     (detected)
+  [ 4]   copilot      Copilot CLI
+
+numbers/names comma-separated, (a)ll, Enter=detected, (q)uit:
+```
+
+- `1,3` or `claude-code,gemini` — pick specific CLIs
+- `a` / `all` — every adapter
+- *(empty)* or `d` — accept the detected set
+- `q` — cancel (no install)
+
+In non-TTY contexts (piped stdin, CI, `--json`), the picker is skipped and auto-detection runs instead.
 
 **Supported agents and behavior:**
 
-| Agent | Detection hints | Install target | Default mode |
-|-------|-----------------|----------------|--------------|
-| Claude Code | `.claude/` | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | `link` |
-| OpenCode | `.opencode/` | `.opencode/commands/*.md` | `copy` |
-| Codex / Cursor / Windsurf | `.cursor/`, `.codex/`, `.windsurf/`, `AGENTS.md` | `AGENTS.md` at project root | `merge` |
-| Gemini CLI | `.gemini/`, `GEMINI.md` | `GEMINI.md` at project root | `merge` |
-| GitHub Copilot | `.github/` | `.github/copilot-instructions.md` | `merge` |
+| Agent | Detection hints | Install target(s) | Default mode |
+|-------|-----------------|-------------------|--------------|
+| Claude Code | `.claude/` | `.claude/skills/docs-numbering/`, `.claude/commands/docs-*.md` | `link` |
+| OpenCode | `.opencode/` | `.opencode/commands/docs-*.md` | `copy` |
+| Gemini CLI | `.gemini/`, `GEMINI.md` | Project: `GEMINI.md` merge block · User: `~/.gemini/commands/docs-*.toml` | `merge` (project) / `copy` (user) |
+| Copilot CLI | `.copilot/` | `.copilot/skills/docs-*/SKILL.md` | `copy` |
 
 **Install modes:**
 
 - **`link`** — Creates symlinks pointing at the repository's adapter files. Pulling the repo auto-propagates updates. Breaks if the repo is moved.
 - **`copy`** — Plain file copy. Self-contained, but updates must be reinstalled manually.
-- **`merge`** — Used for root-level files (`AGENTS.md`, etc.). Inserts a `<!-- docs-numbering:start -->` … `<!-- docs-numbering:end -->` block without clobbering any pre-existing content. Reinstalling refreshes the same block — no duplication.
+- **`merge`** — Used for root-level files (`GEMINI.md`). Inserts a `<!-- docs-numbering:start -->` … `<!-- docs-numbering:end -->` block without clobbering any pre-existing content. Reinstalling refreshes the same block — no duplication.
 
 **Examples:**
 
 ```bash
-# Auto-detect and install
 cd my-project
+
+# Interactive picker (TTY) — pick which CLIs to install
 docs-numbering install
 
-# Target a specific agent
+# Install a subset non-interactively (comma-separated)
+docs-numbering install --agent=claude-code,gemini
+
+# Single agent
 docs-numbering install --agent=claude-code
+
+# Every supported adapter
+docs-numbering install --all
 
 # Overwrite existing files
 docs-numbering install --agent=claude-code --force
@@ -225,14 +301,15 @@ docs-numbering install --agent=claude-code --force
 # Copy instead of symlink (for standalone distribution)
 docs-numbering install --agent=claude-code --mode=copy
 
-# Install everything
-docs-numbering install --all
-
-# Preview without writing
+# Preview without writing (auto JSON output for scripts)
 docs-numbering install --dry-run --json
 
+# Skip the picker in a TTY (use auto-detection)
+docs-numbering install --no-interactive
+
 # One-time user-scope install — enables /docs-install in every project
-docs-numbering install --user --agent=claude-code
+docs-numbering install --user --all
+docs-numbering install --user --agent=claude-code,gemini
 ```
 
 ### Bootstrapping from inside Claude Code
@@ -248,15 +325,16 @@ DOCS_NUMBERING_ADAPTERS_DIR=/my/fork/adapters docs-numbering install --agent=cla
 ### `uninstall` — Remove Adapters
 
 ```bash
-docs-numbering uninstall [--agent=<name>] [--all] [--dry-run]
+docs-numbering uninstall [--agent=<names>] [--all] [--user] [--dry-run]
 ```
 
 Removes adapter files previously installed with `install`.
 
 | Flag | Description |
 |------|-------------|
-| `--agent <name>` | Uninstall a single agent |
+| `--agent <names>` | Comma-separated list of agents to uninstall |
 | `--all` | Uninstall every installed adapter |
+| `--user` | Remove from `$HOME` instead of the current project |
 | `--dry-run` | Show the plan without deleting |
 
 For `merge`-mode adapters, only the `docs-numbering:start`/`end` block is removed — **any other content in the file is preserved**. If the file contained nothing but the block, the file itself is removed.
@@ -265,8 +343,14 @@ For `merge`-mode adapters, only the `docs-numbering:start`/`end` block is remove
 # Remove a single agent
 docs-numbering uninstall --agent=claude-code
 
+# Remove multiple at once
+docs-numbering uninstall --agent=opencode,gemini
+
 # Remove all
 docs-numbering uninstall --all
+
+# Clean up user-scope install
+docs-numbering uninstall --user --all
 ```
 
 ---
@@ -802,26 +886,18 @@ The core CLI is agent-agnostic. Adapter installation is done entirely through th
 
 ### At-a-glance comparison
 
-| Agent | Scope support | Auto-setup on `npm install -g` | Slash command path | Bootstrap |
+| Agent | Scope support | Auto-setup on `npm link` | Slash command path | Bootstrap |
 |-------|---------------|:-:|--------------------|-----------|
 | Claude Code | user + project | ✅ | `~/.claude/commands/` + `~/.claude/skills/` | `/docs-install` |
 | OpenCode | user + project | ✅ | `~/.opencode/commands/` | `/docs-install` |
-| Codex CLI | user + project | ✅ | `~/.codex/prompts/` | `/docs-install` |
-| Cursor | user + project | ✅ | `~/.cursor/commands/` | `/docs-install` |
 | Gemini CLI | user + project | ✅ | `~/.gemini/commands/*.toml` | `/docs-install` |
 | Copilot CLI | user + project | ✅ | `~/.copilot/skills/*/SKILL.md` | `/docs-install` |
-| Windsurf | project only | ❌ | `.windsurf/workflows/` (per project) | `docs-numbering install --agent=windsurf` |
-| Copilot VS Code Chat | project only | ❌ | `.github/prompts/*.prompt.md` (per project) | `docs-numbering install --agent=copilot` |
 
 ---
 
 ### Claude Code
 
-**Install the CLI** (one time, globally):
-```bash
-npm install -g @hpiece/docs-numbering
-```
-The postinstall hook deploys:
+**Install the CLI** (one time; see [Installation](#installation) for the full clone + `npm link` flow). The postinstall hook deploys:
 - `~/.claude/skills/docs-numbering/SKILL.md` (auto-trigger skill)
 - `~/.claude/commands/docs-install.md`, `docs-new.md`, `docs-migrate.md`, `docs-rollback.md`
 
@@ -849,11 +925,7 @@ cd my-project && docs-numbering uninstall --agent=claude-code
 
 ### OpenCode
 
-**Install the CLI** (same one-time step):
-```bash
-npm install -g @hpiece/docs-numbering
-```
-Postinstall deploys `~/.opencode/commands/docs-*.md` (4 files, copy mode).
+**Install the CLI** — same one-time clone + `npm link` step. Postinstall deploys `~/.opencode/commands/docs-*.md` (4 files, copy mode).
 
 **Bootstrap a project** — in OpenCode chat:
 ```
@@ -873,11 +945,7 @@ docs-numbering uninstall --user --agent=opencode
 
 ### Gemini CLI
 
-**Install the CLI**:
-```bash
-npm install -g @hpiece/docs-numbering
-```
-Postinstall deploys `~/.gemini/commands/docs-*.toml` — 4 TOML files in Gemini's custom command format.
+**Install the CLI** — one-time clone + `npm link`. Postinstall deploys `~/.gemini/commands/docs-*.toml` — 4 TOML files in Gemini's custom command format.
 
 **Bootstrap a project** — in Gemini CLI:
 ```
@@ -903,98 +971,26 @@ docs-numbering uninstall --user --agent=gemini
 
 ---
 
-### Codex CLI
+### Copilot CLI
 
-**Install** — automatic via `npm install -g`. Files: `~/.codex/prompts/docs-*.md` (markdown with `description` and `argument-hint` frontmatter; `$1`-`$9` and `$NAMED` placeholders supported).
+**Install** — automatic via `npm link` / global install. Files: `~/.copilot/skills/docs-*/SKILL.md`. Each skill folder contains a `SKILL.md` with YAML frontmatter (`name` becomes the slash command, `description` triggers auto-loading, optional `allowed-tools: shell` pre-approves shell execution).
 
-**Bootstrap** — `/docs-install` in Codex CLI.
-
-**Use**
-- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- Project-scope install also merges a block into `AGENTS.md` for the natural-language path used by tools that read AGENTS.md
-- Direct CLI
-
-**Uninstall**
-```bash
-docs-numbering uninstall --user --agent=codex      # ~/.codex/prompts/
-docs-numbering uninstall --agent=codex             # project: .codex/prompts/ + AGENTS.md block
-```
-
----
-
-### Cursor
-
-**Install** — automatic via `npm install -g`. Files: `~/.cursor/commands/docs-*.md`. Cursor auto-discovers from both `~/.cursor/commands/` (global) and `.cursor/commands/` (project).
-
-**Bootstrap** — `/docs-install` in Cursor chat.
+**Bootstrap** — `/docs-install` inside Copilot CLI (works from any project after global install).
 
 **Use**
-- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- Direct CLI
-
-**Uninstall**
-```bash
-docs-numbering uninstall --user --agent=cursor
-```
-
----
-
-### Windsurf
-
-**No user-scope path** (Windsurf workflows are per project, walking up the directory tree to git root).
-
-**Install per project**:
-```bash
-cd my-project
-docs-numbering install --agent=windsurf
-```
-Files: `.windsurf/workflows/docs-*.md` (markdown with `description` frontmatter and numbered steps).
-
-**Use**
-- Slash: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- Direct CLI
-
-**Uninstall**
-```bash
-cd my-project && docs-numbering uninstall --agent=windsurf
-```
-
----
-
-### GitHub Copilot
-
-GitHub Copilot has two surfaces with different mechanisms:
-
-**Copilot CLI (terminal)** — supports user-scope custom skills. Auto-deployed to `~/.copilot/skills/docs-*/SKILL.md` on `npm install -g`. Each skill folder contains a `SKILL.md` with YAML frontmatter (`name` becomes the slash command, `description` triggers auto-loading, optional `allowed-tools: shell` pre-approves shell execution).
-
-**Copilot in VS Code Chat** — has no user-scope filesystem path. Install per project:
-```bash
-cd my-project
-docs-numbering install --agent=copilot
-```
-Project install includes:
-- `.github/copilot-instructions.md` (merge block) — natural-language fallback for any Copilot
-- `.github/prompts/docs-*.prompt.md` (4 files) — slash commands for VS Code Copilot Chat
-- `.github/skills/docs-*/SKILL.md` (4 dirs) — project-level skills for Copilot CLI
-
-**Bootstrap from inside Copilot CLI** — `/docs-install` (works anywhere after global npm install).
-
-**Use**
-- Slash (Copilot CLI anywhere; VS Code Chat after project install): `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- Natural language fallback: any Copilot understands "docs-numbering install 실행해줘" if `.github/copilot-instructions.md` is installed in the project
+- Slash: `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`
 - Direct CLI
 
 **Uninstall**
 ```bash
 docs-numbering uninstall --user --agent=copilot    # ~/.copilot/skills/
-docs-numbering uninstall --agent=copilot           # project: .github/copilot-instructions.md block, .github/prompts/, .github/skills/
 ```
 
 ---
 
 ### Manual installation (reference)
 
-If you can't use the `install` command (e.g., shipping adapters without the CLI), copy or symlink files directly from `core/adapters/<agent>/` inside the repository. For root-level files (`AGENTS.md`, `GEMINI.md`, `copilot-instructions.md`), wrap the content in a `<!-- docs-numbering:start -->` … `<!-- docs-numbering:end -->` block to preserve any existing file content.
+If you can't use the `install` command (e.g., shipping adapters without the CLI), copy or symlink files directly from `core/adapters/<agent>/` inside the repository. For the root-level `GEMINI.md`, wrap the content in a `<!-- docs-numbering:start -->` … `<!-- docs-numbering:end -->` block to preserve any existing file content.
 
 ---
 
@@ -1006,7 +1002,13 @@ If you can't use the `install` command (e.g., shipping adapters without the CLI)
 | `unknown phase` | Run `phases --method=X` to see valid phases |
 | `project is locked` | Delete `.docs-numbering/lock` manually |
 | `checksum mismatch` on rollback | File was edited externally; use `--force` |
-| `command not found: docs-numbering` | Add `~/.npm-packages/bin` to PATH |
+| `command not found: docs-numbering` | Add the npm global bin to PATH (`npm prefix -g` + `/bin`, commonly `~/.npm-packages/bin`) |
+| `install` picker did not appear | Not a TTY (piped stdin, CI, `--json`), or `--agent` / `--all` / `--no-interactive` was passed. In a TTY without flags, the picker runs automatically. |
+| `unknown adapter: <name>` in `install` | Valid names are `claude-code`, `opencode`, `gemini`, `copilot`. Comma-separated lists are supported (no spaces around commas). |
+| `npm error 404` for `@hpiece/docs-numbering` | Package is not yet published. Install via `git clone` + `npm link` (see [Installation](#installation)). |
+| Stale user-scope symlinks after moving the repo | **Fixed automatically** — link-mode adapters (Claude Code) are auto-relinked on reinstall. Re-run `docs-numbering install --user --all` or re-run `npm link` and the postinstall hook refreshes them. The action status reports `relinked`. |
+| Copy-mode user-scope files stay on old version | `install` preserves existing copies (so user edits survive). To refresh OpenCode / Gemini / Copilot CLI files to the latest: `docs-numbering install --user --all --force`. |
+| `/docs-*` slash commands still appear after `npm unlink -g` | npm skips `preuninstall` for globally-linked packages, so adapter files were never cleaned up. Fix: `cd docs-numbering/core && npm link && npm run unlink-all`. Prevention: always use `npm run unlink-all` instead of plain `npm unlink -g`. |
 
 ---
 

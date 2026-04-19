@@ -37,6 +37,58 @@ describe('install: detection', () => {
   });
 });
 
+describe('install: multi-agent --agent list', () => {
+  it('accepts comma-separated --agent list', async () => {
+    const p = mkProject();
+    const r = await runInstall({ cwd: p.dir, flags: { agent: 'claude-code,opencode' } });
+    expect(r.targets).toEqual(['claude-code', 'opencode']);
+    expect(existsSync(join(p.dir, '.claude/commands/docs-new.md'))).toBe(true);
+    expect(existsSync(join(p.dir, '.opencode/commands/docs-new.md'))).toBe(true);
+  });
+
+  it('trims whitespace around names', async () => {
+    const p = mkProject();
+    const r = await runInstall({ cwd: p.dir, flags: { agent: ' opencode , gemini ' } });
+    expect(r.targets).toEqual(['opencode', 'gemini']);
+  });
+
+  it('dedupes repeated names', async () => {
+    const p = mkProject();
+    const r = await runInstall({ cwd: p.dir, flags: { agent: 'opencode,opencode' } });
+    expect(r.targets).toEqual(['opencode']);
+  });
+
+  it('throws on unknown adapter in list', async () => {
+    const p = mkProject();
+    await expect(runInstall({ cwd: p.dir, flags: { agent: 'claude-code,bogus' } }))
+      .rejects.toThrow(/bogus/);
+  });
+
+  it('accepts array form of agent', async () => {
+    const p = mkProject();
+    const r = await runInstall({ cwd: p.dir, flags: { agent: ['opencode', 'copilot'] } });
+    expect(r.targets).toEqual(['opencode', 'copilot']);
+  });
+
+  it('uninstall also accepts comma-separated --agent', async () => {
+    const p = mkProject();
+    await runInstall({ cwd: p.dir, flags: { agent: 'opencode,gemini' } });
+    const r = await runUninstall({ cwd: p.dir, flags: { agent: 'opencode,gemini' } });
+    expect(r.targets).toEqual(['opencode', 'gemini']);
+    expect(existsSync(join(p.dir, '.opencode/commands/docs-new.md'))).toBe(false);
+  });
+});
+
+describe('install: interactive picker gating', () => {
+  it('does not prompt in non-TTY (test env) — falls back to detection', async () => {
+    const p = mkProject();
+    mkdirSync(join(p.dir, '.claude'), { recursive: true });
+    const r = await runInstall({ cwd: p.dir, flags: {} });
+    expect(r.targets).toEqual(['claude-code']);
+    expect(r.interactive).toBe(false);
+  });
+});
+
 describe('install: claude-code (link mode)', () => {
   it('creates symlinks for skills and commands', async () => {
     const p = mkProject();
@@ -47,6 +99,38 @@ describe('install: claude-code (link mode)', () => {
     const cmd = join(p.dir, '.claude/commands/docs-new.md');
     expect(lstatSync(skill).isSymbolicLink()).toBe(true);
     expect(lstatSync(cmd).isSymbolicLink()).toBe(true);
+  });
+
+  it('auto-replaces stale symlinks in link mode without --force', async () => {
+    const p = mkProject();
+    // Pre-existing symlink pointing somewhere bogus (simulates repo relocation)
+    mkdirSync(join(p.dir, '.claude/commands'), { recursive: true });
+    const { symlinkSync } = await import('node:fs');
+    symlinkSync('/nonexistent/old/path/docs-new.md', join(p.dir, '.claude/commands/docs-new.md'));
+
+    const r = await runInstall({ cwd: p.dir, flags: { agent: 'claude-code' } });
+
+    // Should have been relinked automatically (not skipped)
+    const relinked = r.results[0].actions.find(
+      (a) => a.to.endsWith('docs-new.md') && a.status === 'relinked'
+    );
+    expect(relinked).toBeTruthy();
+    expect(existsSync(join(p.dir, '.claude/commands/docs-new.md'))).toBe(true);
+  });
+
+  it('preserves copy-mode files without --force (does not auto-replace)', async () => {
+    const p = mkProject();
+    mkdirSync(join(p.dir, '.opencode/commands'), { recursive: true });
+    writeFileSync(join(p.dir, '.opencode/commands/docs-new.md'), 'user edit', 'utf8');
+
+    const r = await runInstall({ cwd: p.dir, flags: { agent: 'opencode' } });
+
+    // copy mode: must NOT auto-replace without --force
+    const skipped = r.results[0].actions.find(
+      (a) => a.to.endsWith('docs-new.md') && a.action === 'skip'
+    );
+    expect(skipped).toBeTruthy();
+    expect(readFileSync(join(p.dir, '.opencode/commands/docs-new.md'), 'utf8')).toBe('user edit');
   });
 
   it('skips existing files without --force', async () => {
@@ -80,28 +164,28 @@ describe('install: opencode (copy mode)', () => {
   });
 });
 
-describe('install: merge mode (AGENTS.md)', () => {
+describe('install: merge mode (GEMINI.md)', () => {
   it('creates file with start/end markers when missing', async () => {
     const p = mkProject();
-    await runInstall({ cwd: p.dir, flags: { agent: 'codex' } });
-    const content = readFileSync(join(p.dir, 'AGENTS.md'), 'utf8');
+    await runInstall({ cwd: p.dir, flags: { agent: 'gemini' } });
+    const content = readFileSync(join(p.dir, 'GEMINI.md'), 'utf8');
     expect(content).toMatch(/docs-numbering:start/);
     expect(content).toMatch(/docs-numbering:end/);
   });
 
   it('appends block to existing file without clobbering content', async () => {
-    const p = mkProject({ 'AGENTS.md': '# My project\n\nPre-existing content.\n' });
-    await runInstall({ cwd: p.dir, flags: { agent: 'codex' } });
-    const content = readFileSync(join(p.dir, 'AGENTS.md'), 'utf8');
+    const p = mkProject({ 'GEMINI.md': '# My project\n\nPre-existing content.\n' });
+    await runInstall({ cwd: p.dir, flags: { agent: 'gemini' } });
+    const content = readFileSync(join(p.dir, 'GEMINI.md'), 'utf8');
     expect(content).toMatch(/Pre-existing content/);
     expect(content).toMatch(/docs-numbering:start/);
   });
 
   it('updates existing block on reinstall without duplication', async () => {
     const p = mkProject();
-    await runInstall({ cwd: p.dir, flags: { agent: 'codex' } });
-    await runInstall({ cwd: p.dir, flags: { agent: 'codex' } });
-    const content = readFileSync(join(p.dir, 'AGENTS.md'), 'utf8');
+    await runInstall({ cwd: p.dir, flags: { agent: 'gemini' } });
+    await runInstall({ cwd: p.dir, flags: { agent: 'gemini' } });
+    const content = readFileSync(join(p.dir, 'GEMINI.md'), 'utf8');
     const startCount = content.match(/docs-numbering:start/g).length;
     expect(startCount).toBe(1);
   });
@@ -118,10 +202,10 @@ describe('uninstall', () => {
   });
 
   it('removes merge block while preserving other content', async () => {
-    const p = mkProject({ 'AGENTS.md': '# Keep me\n' });
-    await runInstall({ cwd: p.dir, flags: { agent: 'codex' } });
-    await runUninstall({ cwd: p.dir, flags: { agent: 'codex' } });
-    const content = readFileSync(join(p.dir, 'AGENTS.md'), 'utf8');
+    const p = mkProject({ 'GEMINI.md': '# Keep me\n' });
+    await runInstall({ cwd: p.dir, flags: { agent: 'gemini' } });
+    await runUninstall({ cwd: p.dir, flags: { agent: 'gemini' } });
+    const content = readFileSync(join(p.dir, 'GEMINI.md'), 'utf8');
     expect(content).toMatch(/Keep me/);
     expect(content).not.toMatch(/docs-numbering:start/);
   });
@@ -257,53 +341,19 @@ describe('install: --user scope', () => {
     expect(existsSync(join(home.dir, 'GEMINI.md'))).toBe(false);
   });
 
-  it('--user --all installs CLI agents (claude-code, opencode, codex, cursor, gemini, copilot) but skips windsurf', async () => {
+  it('--user --all installs supported CLI agents (claude-code, opencode, gemini, copilot)', async () => {
     const project = mkProject();
     const home = mkProject();
     const r = await runInstall({
       cwd: project.dir, homeDir: home.dir,
       flags: { user: true, all: true }
     });
-    expect(r.targets).toEqual(expect.arrayContaining(['claude-code', 'opencode', 'codex', 'cursor', 'gemini', 'copilot']));
-    expect(r.targets).not.toContain('windsurf');
+    expect(r.targets).toEqual(['claude-code', 'opencode', 'gemini', 'copilot']);
     // No project-level merge files should appear at home
-    expect(existsSync(join(home.dir, 'AGENTS.md'))).toBe(false);
-    expect(existsSync(join(home.dir, '.github/copilot-instructions.md'))).toBe(false);
+    expect(existsSync(join(home.dir, 'GEMINI.md'))).toBe(false);
   });
 
-  it('explicit --user --agent=windsurf is skipped with marker', async () => {
-    const project = mkProject();
-    const home = mkProject();
-    const r = await runInstall({
-      cwd: project.dir, homeDir: home.dir,
-      flags: { user: true, agent: 'windsurf' }
-    });
-    expect(r.results[0].skipped).toBe('user-scope-unsupported');
-    expect(existsSync(join(home.dir, '.windsurf/workflows'))).toBe(false);
-  });
-
-  it('installs codex prompts at user scope but not AGENTS.md', async () => {
-    const project = mkProject();
-    const home = mkProject();
-    await runInstall({
-      cwd: project.dir, homeDir: home.dir,
-      flags: { user: true, agent: 'codex' }
-    });
-    expect(existsSync(join(home.dir, '.codex/prompts/docs-install.md'))).toBe(true);
-    expect(existsSync(join(home.dir, 'AGENTS.md'))).toBe(false);
-  });
-
-  it('installs cursor commands at user scope', async () => {
-    const project = mkProject();
-    const home = mkProject();
-    await runInstall({
-      cwd: project.dir, homeDir: home.dir,
-      flags: { user: true, agent: 'cursor' }
-    });
-    expect(existsSync(join(home.dir, '.cursor/commands/docs-install.md'))).toBe(true);
-  });
-
-  it('installs copilot CLI skills at user scope (not project files)', async () => {
+  it('installs copilot CLI skills at user scope', async () => {
     const project = mkProject();
     const home = mkProject();
     await runInstall({
@@ -312,38 +362,6 @@ describe('install: --user scope', () => {
     });
     expect(existsSync(join(home.dir, '.copilot/skills/docs-install/SKILL.md'))).toBe(true);
     expect(existsSync(join(home.dir, '.copilot/skills/docs-new/SKILL.md'))).toBe(true);
-    expect(existsSync(join(home.dir, '.github/copilot-instructions.md'))).toBe(false);
-    expect(existsSync(join(home.dir, '.github/prompts'))).toBe(false);
-  });
-
-  it('project copilot install includes instructions, prompts, and skills', async () => {
-    const project = mkProject();
-    await runInstall({
-      cwd: project.dir, homeDir: project.dir,
-      flags: { agent: 'copilot' }
-    });
-    expect(existsSync(join(project.dir, '.github/copilot-instructions.md'))).toBe(true);
-    expect(existsSync(join(project.dir, '.github/prompts/docs-install.prompt.md'))).toBe(true);
-    expect(existsSync(join(project.dir, '.github/skills/docs-install/SKILL.md'))).toBe(true);
-  });
-
-  it('project codex install includes prompts and AGENTS.md merge', async () => {
-    const project = mkProject();
-    await runInstall({
-      cwd: project.dir, homeDir: project.dir,
-      flags: { agent: 'codex' }
-    });
-    expect(existsSync(join(project.dir, '.codex/prompts/docs-install.md'))).toBe(true);
-    expect(readFileSync(join(project.dir, 'AGENTS.md'), 'utf8')).toMatch(/docs-numbering:start/);
-  });
-
-  it('project windsurf install creates workflows', async () => {
-    const project = mkProject();
-    await runInstall({
-      cwd: project.dir, homeDir: project.dir,
-      flags: { agent: 'windsurf' }
-    });
-    expect(existsSync(join(project.dir, '.windsurf/workflows/docs-install.md'))).toBe(true);
   });
 
   it('gemini project scope still installs GEMINI.md (merge)', async () => {

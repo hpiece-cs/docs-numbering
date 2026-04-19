@@ -34,13 +34,63 @@
 
 ## 설치
 
+npm 패키지는 아직 배포 전이므로 클론 후 `npm link`로 설치합니다:
+
 ```bash
-cd core && npm install && npm link
+git clone https://github.com/hpiece-cs/docs-numbering.git
+cd docs-numbering/core
+npm install
+npm link
 ```
 
-`~/.npm-packages/bin`이 PATH에 포함되어야 합니다:
+`npm link` 시 postinstall 훅이 `docs-numbering install --user --all --no-init`을 자동 실행해, 지원되는 4개 CLI(Claude Code, OpenCode, Gemini CLI, Copilot CLI)에 사용자 범위 슬래시 커맨드(`/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`)가 배치됩니다.
+
+**설치 확인:**
 ```bash
+docs-numbering --version
+docnum --version          # 짧은 별칭 (동일 바이너리)
+```
+
+명령을 찾지 못하면 npm 전역 bin 디렉토리가 PATH에 없는 것입니다. 추가:
+
+```bash
+# zsh
 echo 'export PATH="$HOME/.npm-packages/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+# bash
+echo 'export PATH="$HOME/.npm-packages/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+```
+
+(환경에 따라 경로가 다를 수 있습니다 — `npm prefix -g`의 결과 뒤에 `/bin`을 붙이세요.)
+
+**제거:**
+
+> ⚠️ `npm unlink -g` **단독 실행으로는 사용자 범위 슬래시 커맨드가 제거되지 않습니다** — npm은 전역 링크 해제 시 라이프사이클 훅(`preuninstall` 포함)을 건너뜁니다. 아래 방법 중 하나로 제거해야 AI CLI에 `/docs-*` 커맨드가 고아로 남지 않습니다.
+
+**권장 — 원샷 완전 제거:**
+```bash
+cd docs-numbering/core
+npm run unlink-all
+```
+`docs-numbering uninstall --user --all`을 먼저 실행해 `~/.claude/`, `~/.opencode/`, `~/.gemini/`, `~/.copilot/`의 어댑터를 삭제한 뒤 `npm unlink -g`로 CLI 심볼릭 링크까지 제거합니다.
+
+**2단계 수동 (동등):**
+```bash
+docs-numbering uninstall --user --all           # 슬래시 커맨드 / 스킬 제거
+cd docs-numbering/core && npm unlink -g @hpiece/docs-numbering   # CLI 심볼릭 링크 제거
+```
+
+**어댑터만 제거 (CLI는 유지):**
+```bash
+npm run uninstall-all      # core/ 디렉토리에서
+# 또는 동등하게:
+docs-numbering uninstall --user --all
+```
+
+**고아 상태 복구** — `npm unlink -g`를 먼저 실행해서 슬래시 커맨드가 남아 있다면, 재링크 후 올바른 순서로 다시 제거:
+```bash
+cd docs-numbering/core
+npm link                   # CLI 재설치
+npm run unlink-all         # 전체 제거
 ```
 
 ## 빠른 시작
@@ -172,52 +222,78 @@ docs-numbering rollback --last --apply # 실행
 ### `install` — 어댑터 자동 설치
 
 ```bash
-docs-numbering install [--agent=<name>] [--all] [--mode=<link|copy|merge>] [--force] [--user] [--no-init] [--dry-run]
+docs-numbering install [--agent=<names>] [--all] [--mode=<link|copy|merge>] [--force] [--user] [--no-init] [--no-interactive] [--dry-run]
 ```
 
-각 AI 에이전트별 어댑터 파일(슬래시 커맨드, 스킬, 지시문)을 프로젝트에 자동으로 설치합니다. 수동 `ln -s`나 `cp` 없이 한 번에 끝납니다.
+AI 에이전트별 어댑터 파일(슬래시 커맨드, 스킬, 지시문)을 프로젝트에 자동으로 설치합니다. 수동 `ln -s`나 `cp` 없이 한 번에 끝납니다.
 
-**자동 초기화:** `.docs-numbering.yaml`이 없으면 `install`이 자동으로 생성합니다 — 별도의 `docs-numbering init`을 먼저 실행할 필요가 없습니다. 비활성화하려면 `--no-init`을 쓰거나 `--dry-run`을 사용하세요(후자도 init을 건너뜁니다). `--user` 범위에서는 자동 초기화가 동작하지 않습니다.
+**자동 초기화:** `.docs-numbering.yaml`이 없으면 `install`이 자동으로 생성합니다 — 별도의 `docs-numbering init`을 먼저 실행할 필요가 없습니다. 비활성화하려면 `--no-init`을 사용하세요. `--dry-run` 및 `--user` 범위에서도 자동 초기화는 건너뜁니다.
 
 **사용자 범위(`--user`):** 프로젝트 대신 `$HOME`에 설치합니다(예: `~/.claude/commands/`, `~/.claude/skills/docs-numbering`). 슬래시 커맨드(`/docs-install` 등)를 모든 프로젝트에서 쓸 수 있도록 1회성으로 배치할 때 사용합니다. 감지도 `$HOME` 기준으로 수행됩니다.
 
 | 플래그 | 설명 |
 |--------|------|
-| `--agent <이름>` | 특정 에이전트 지정: `claude-code`, `opencode`, `codex`, `gemini`, `copilot` |
+| `--agent <이름들>` | 쉼표 구분 에이전트 목록: `claude-code`, `opencode`, `gemini`, `copilot`. 단일/복수 모두 가능. |
 | `--all` | 지원하는 모든 어댑터 설치 |
 | `--mode <모드>` | 설치 방식 (기본값은 에이전트별로 다름): `link`(심볼릭 링크), `copy`(복사), `merge`(블록 병합) |
 | `--force` | 기존 파일이 있어도 덮어쓰기 |
 | `--user` | 현재 프로젝트 대신 `$HOME`에 설치 |
 | `--no-init` | `.docs-numbering.yaml`이 없어도 자동 생성하지 않음 |
+| `--no-interactive` | 인터랙티브 picker 비활성화 (자동 감지로 폴백) |
 | `--dry-run` | 실제 파일을 만들지 않고 계획만 표시 (`--no-init`을 내포) |
 
-플래그가 하나도 없으면 프로젝트를 스캔해 **감지된 에이전트**에 설치합니다. 아무것도 감지되지 않으면 지원 목록만 보여줍니다.
+**선택 우선순위:** `--agent` > `--all` > 인터랙티브 picker (TTY 한정) > 자동 감지.
+
+**인터랙티브 picker (TTY):** `--agent` / `--all` 없이 TTY에서 `docs-numbering install`을 실행하면 지원 CLI 목록이 번호와 함께 출력되며, 감지된 항목은 `*`로 표시됩니다. 입력 옵션:
+
+```
+설치할 CLI를 선택하세요 (감지된 항목은 * 표시):
+  [ 1] * claude-code  Claude Code    (감지됨)
+  [ 2]   opencode     OpenCode
+  [ 3] * gemini       Gemini CLI     (감지됨)
+  [ 4]   copilot      Copilot CLI
+
+번호/이름 쉼표 구분, (a)전체, Enter=감지됨, (q)취소:
+```
+
+- `1,3` 또는 `claude-code,gemini` — 특정 CLI 선택
+- `a` / `all` — 모든 어댑터
+- *(빈 입력)* 또는 `d` — 감지된 세트 수락
+- `q` — 취소 (설치 안 함)
+
+파이프 입력, CI, `--json` 등 비-TTY 환경에서는 picker가 자동으로 건너뛰어지고 자동 감지가 실행됩니다.
 
 **지원 에이전트와 동작:**
 
 | 에이전트 | 감지 조건 | 설치 대상 | 기본 모드 |
-|---------|----------|----------|----------|
-| Claude Code | `.claude/` | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | `link` |
-| OpenCode | `.opencode/` | `.opencode/commands/*.md` | `copy` |
-| Codex / Cursor / Windsurf | `.cursor/`, `.codex/`, `.windsurf/`, `AGENTS.md` | 프로젝트 루트 `AGENTS.md` | `merge` |
-| Gemini CLI | `.gemini/`, `GEMINI.md` | 프로젝트 루트 `GEMINI.md` | `merge` |
-| GitHub Copilot | `.github/` | `.github/copilot-instructions.md` | `merge` |
+|---------|----------|-----------|----------|
+| Claude Code | `.claude/` | `.claude/skills/docs-numbering/`, `.claude/commands/docs-*.md` | `link` |
+| OpenCode | `.opencode/` | `.opencode/commands/docs-*.md` | `copy` |
+| Gemini CLI | `.gemini/`, `GEMINI.md` | 프로젝트: `GEMINI.md` 병합 · 사용자: `~/.gemini/commands/docs-*.toml` | `merge` (프로젝트) / `copy` (사용자) |
+| Copilot CLI | `.copilot/` | `.copilot/skills/docs-*/SKILL.md` | `copy` |
 
 **설치 모드 설명:**
 
 - **`link`** — 저장소의 어댑터 파일로 심볼릭 링크를 만듭니다. 저장소를 `git pull`하면 변경사항이 자동 반영됩니다. 저장소 위치가 바뀌면 링크가 깨집니다.
 - **`copy`** — 파일을 그대로 복사합니다. 독립적이지만 업데이트를 수동으로 다시 받아야 합니다.
-- **`merge`** — 대상이 루트 파일(`AGENTS.md` 등)일 때 사용됩니다. 기존 파일을 덮어쓰지 않고 `<!-- docs-numbering:start -->` ~ `<!-- docs-numbering:end -->` 블록으로 삽입합니다. 재설치 시 같은 블록이 갱신되므로 중복이 쌓이지 않습니다.
+- **`merge`** — 대상이 루트 파일(`GEMINI.md` 등)일 때 사용됩니다. 기존 파일을 덮어쓰지 않고 `<!-- docs-numbering:start -->` ~ `<!-- docs-numbering:end -->` 블록으로 삽입합니다. 재설치 시 같은 블록이 갱신되므로 중복이 쌓이지 않습니다.
 
 **예시:**
 
 ```bash
-# 감지된 에이전트 자동 설치
 cd my-project
+
+# 인터랙티브 picker (TTY) — 설치할 CLI를 번호/이름으로 선택
 docs-numbering install
 
-# 특정 에이전트만
+# 비대화식으로 여러 CLI 동시 설치 (쉼표 구분)
+docs-numbering install --agent=claude-code,gemini
+
+# 단일 에이전트
 docs-numbering install --agent=claude-code
+
+# 지원하는 모든 어댑터
+docs-numbering install --all
 
 # 기존 파일 덮어쓰기
 docs-numbering install --agent=claude-code --force
@@ -225,14 +301,15 @@ docs-numbering install --agent=claude-code --force
 # 링크 대신 복사본 설치 (저장소와 분리하고 싶을 때)
 docs-numbering install --agent=claude-code --mode=copy
 
-# 지원하는 모든 어댑터 설치
-docs-numbering install --all
-
-# 실제 변경 없이 계획만 확인
+# 실제 변경 없이 계획만 확인 (스크립트용 JSON 출력)
 docs-numbering install --dry-run --json
 
-# 사용자 범위 1회 설치 — 모든 프로젝트에서 /docs-install 슬래시 커맨드 활성화
-docs-numbering install --user --agent=claude-code
+# TTY에서도 picker 비활성화 (자동 감지 사용)
+docs-numbering install --no-interactive
+
+# 사용자 범위 1회 설치 — 모든 프로젝트에서 /docs-install 활성화
+docs-numbering install --user --all
+docs-numbering install --user --agent=claude-code,gemini
 ```
 
 ### Claude Code 안에서 부트스트랩하기
@@ -248,15 +325,16 @@ DOCS_NUMBERING_ADAPTERS_DIR=/my/fork/adapters docs-numbering install --agent=cla
 ### `uninstall` — 어댑터 제거
 
 ```bash
-docs-numbering uninstall [--agent=<name>] [--all] [--dry-run]
+docs-numbering uninstall [--agent=<names>] [--all] [--user] [--dry-run]
 ```
 
 `install`로 설치한 어댑터 파일을 제거합니다.
 
 | 플래그 | 설명 |
 |--------|------|
-| `--agent <이름>` | 특정 에이전트만 제거 |
+| `--agent <이름들>` | 제거할 에이전트를 쉼표 구분으로 지정 |
 | `--all` | 모든 어댑터 제거 |
+| `--user` | 프로젝트 대신 `$HOME`에서 제거 |
 | `--dry-run` | 실제 삭제 없이 계획만 표시 |
 
 병합(`merge`) 모드로 설치된 경우 `docs-numbering:start`/`end` 블록만 제거되고 **나머지 기존 내용은 보존**됩니다. 파일이 블록만 담고 있었다면 파일 자체가 삭제됩니다.
@@ -265,8 +343,14 @@ docs-numbering uninstall [--agent=<name>] [--all] [--dry-run]
 # 특정 에이전트 제거
 docs-numbering uninstall --agent=claude-code
 
+# 여러 에이전트 한 번에 제거
+docs-numbering uninstall --agent=opencode,gemini
+
 # 모두 제거
 docs-numbering uninstall --all
+
+# 사용자 범위 정리
+docs-numbering uninstall --user --all
 ```
 
 ---
@@ -811,26 +895,18 @@ docs-numbering rollback --last --locale=en
 
 ### 한눈에 비교
 
-| 에이전트 | 지원 범위 | `npm install -g` 시 자동 설정 | 슬래시 경로 | 부트스트랩 |
+| 에이전트 | 지원 범위 | `npm link` 시 자동 설정 | 슬래시 경로 | 부트스트랩 |
 |----------|----------|:-:|------------|-----------|
 | Claude Code | 사용자 + 프로젝트 | ✅ | `~/.claude/commands/` + `~/.claude/skills/` | `/docs-install` |
 | OpenCode | 사용자 + 프로젝트 | ✅ | `~/.opencode/commands/` | `/docs-install` |
-| Codex CLI | 사용자 + 프로젝트 | ✅ | `~/.codex/prompts/` | `/docs-install` |
-| Cursor | 사용자 + 프로젝트 | ✅ | `~/.cursor/commands/` | `/docs-install` |
 | Gemini CLI | 사용자 + 프로젝트 | ✅ | `~/.gemini/commands/*.toml` | `/docs-install` |
 | Copilot CLI | 사용자 + 프로젝트 | ✅ | `~/.copilot/skills/*/SKILL.md` | `/docs-install` |
-| Windsurf | 프로젝트만 | ❌ | `.windsurf/workflows/` (프로젝트별) | `docs-numbering install --agent=windsurf` |
-| Copilot VS Code Chat | 프로젝트만 | ❌ | `.github/prompts/*.prompt.md` (프로젝트별) | `docs-numbering install --agent=copilot` |
 
 ---
 
 ### Claude Code
 
-**CLI 설치** (전역 1회):
-```bash
-npm install -g @hpiece/docs-numbering
-```
-postinstall 훅이 다음 파일들을 배치합니다:
+**CLI 설치** — 1회 전역 설치(자세한 단계는 [설치](#설치) 참조). postinstall 훅이 다음 파일들을 배치합니다:
 - `~/.claude/skills/docs-numbering/SKILL.md` (자동 트리거 스킬)
 - `~/.claude/commands/docs-install.md`, `docs-new.md`, `docs-migrate.md`, `docs-rollback.md`
 
@@ -858,11 +934,7 @@ cd my-project && docs-numbering uninstall --agent=claude-code
 
 ### OpenCode
 
-**CLI 설치** (동일한 1회 단계):
-```bash
-npm install -g @hpiece/docs-numbering
-```
-postinstall이 `~/.opencode/commands/docs-*.md` 4개 파일을 복사 모드로 배치합니다.
+**CLI 설치** — 동일한 1회 전역 설치 단계. postinstall이 `~/.opencode/commands/docs-*.md` 4개 파일을 복사 모드로 배치합니다.
 
 **부트스트랩** — OpenCode 채팅에서:
 ```
@@ -882,11 +954,7 @@ docs-numbering uninstall --user --agent=opencode
 
 ### Gemini CLI
 
-**CLI 설치**:
-```bash
-npm install -g @hpiece/docs-numbering
-```
-postinstall이 `~/.gemini/commands/docs-*.toml` 4개 파일(Gemini 커스텀 커맨드 TOML 포맷)을 배치합니다.
+**CLI 설치** — 1회 전역 설치. postinstall이 `~/.gemini/commands/docs-*.toml` 4개 파일(Gemini 커스텀 커맨드 TOML 포맷)을 배치합니다.
 
 **부트스트랩** — Gemini CLI에서:
 ```
@@ -912,98 +980,26 @@ docs-numbering uninstall --user --agent=gemini
 
 ---
 
-### Codex CLI
+### Copilot CLI
 
-**설치** — `npm install -g` 시 자동. 파일: `~/.codex/prompts/docs-*.md` (마크다운, frontmatter `description` + `argument-hint`, `$1`-`$9` 및 `$NAMED` 플레이스홀더 지원).
+**설치** — `npm link` / 전역 설치 시 자동. 파일: `~/.copilot/skills/docs-*/SKILL.md`. 각 스킬 폴더는 `SKILL.md`를 담으며 YAML frontmatter의 `name`이 슬래시 커맨드가 되고, `description`이 자동 트리거를 결정하며, 선택적 `allowed-tools: shell`로 셸 실행 사전 승인.
 
-**부트스트랩** — Codex CLI에서 `/docs-install`.
-
-**사용**
-- 슬래시: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- 프로젝트 설치 시 자연어 트리거용 `AGENTS.md`도 병합 (AGENTS.md를 읽는 다른 도구들과 호환)
-- 직접 CLI
-
-**제거**
-```bash
-docs-numbering uninstall --user --agent=codex      # ~/.codex/prompts/
-docs-numbering uninstall --agent=codex             # 프로젝트: .codex/prompts/ + AGENTS.md 블록
-```
-
----
-
-### Cursor
-
-**설치** — `npm install -g` 시 자동. 파일: `~/.cursor/commands/docs-*.md`. Cursor는 `~/.cursor/commands/`(글로벌)와 `.cursor/commands/`(프로젝트) 양쪽을 자동 탐지.
-
-**부트스트랩** — Cursor 채팅에서 `/docs-install`.
+**부트스트랩** — Copilot CLI 안에서 `/docs-install` (전역 설치 후 어느 프로젝트에서도 동작).
 
 **사용**
-- 슬래시: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- 직접 CLI
-
-**제거**
-```bash
-docs-numbering uninstall --user --agent=cursor
-```
-
----
-
-### Windsurf
-
-**사용자 범위 경로 없음** (Windsurf 워크플로우는 프로젝트별이며 git 루트까지 디렉토리를 거슬러 올라가며 탐색).
-
-**프로젝트마다 설치**:
-```bash
-cd my-project
-docs-numbering install --agent=windsurf
-```
-파일: `.windsurf/workflows/docs-*.md` (frontmatter `description` + 번호 매겨진 단계).
-
-**사용**
-- 슬래시: `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- 직접 CLI
-
-**제거**
-```bash
-cd my-project && docs-numbering uninstall --agent=windsurf
-```
-
----
-
-### GitHub Copilot
-
-GitHub Copilot은 두 인터페이스가 다른 메커니즘을 사용합니다:
-
-**Copilot CLI (터미널)** — 사용자 범위 커스텀 스킬 지원. `npm install -g` 시 `~/.copilot/skills/docs-*/SKILL.md`에 자동 배치. 각 스킬 폴더는 SKILL.md를 가지며 YAML frontmatter의 `name`이 슬래시 커맨드가 되고, `description`이 자동 트리거를 결정하며, 선택적 `allowed-tools: shell`로 셸 실행 사전 승인.
-
-**Copilot VS Code Chat** — 사용자 범위 파일 경로 없음. 프로젝트마다 설치:
-```bash
-cd my-project
-docs-numbering install --agent=copilot
-```
-프로젝트 설치 항목:
-- `.github/copilot-instructions.md` (병합 블록) — 모든 Copilot의 자연어 폴백
-- `.github/prompts/docs-*.prompt.md` (4개) — VS Code Copilot Chat 슬래시 커맨드
-- `.github/skills/docs-*/SKILL.md` (4개 폴더) — Copilot CLI 프로젝트 스킬
-
-**Copilot CLI 안에서 부트스트랩** — `/docs-install` (전역 npm 설치 후 어디서든 동작).
-
-**사용**
-- 슬래시 (Copilot CLI는 어디서나, VS Code Chat은 프로젝트 설치 후): `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`
-- 자연어 폴백 (어떤 Copilot이든, 프로젝트에 `.github/copilot-instructions.md`가 설치되어 있으면): "docs-numbering install 실행해줘" 등
+- 슬래시: `/docs-install`, `/docs-new`, `/docs-migrate`, `/docs-rollback`
 - 직접 CLI
 
 **제거**
 ```bash
 docs-numbering uninstall --user --agent=copilot    # ~/.copilot/skills/
-docs-numbering uninstall --agent=copilot           # 프로젝트: .github/copilot-instructions.md 블록, .github/prompts/, .github/skills/
 ```
 
 ---
 
 ### 수동 설치 (참고)
 
-`install` 명령을 사용할 수 없는 환경(예: CLI 없이 어댑터 파일만 이식)에서는 저장소의 `core/adapters/<에이전트>/` 아래 파일을 직접 복사하거나 심볼릭 링크해도 동일하게 동작합니다. 루트 파일(`AGENTS.md`, `GEMINI.md`, `copilot-instructions.md`)은 기존 내용을 유지하려면 `<!-- docs-numbering:start -->` ~ `<!-- docs-numbering:end -->` 블록 형태로 삽입하세요.
+`install` 명령을 사용할 수 없는 환경(예: CLI 없이 어댑터 파일만 이식)에서는 저장소의 `core/adapters/<에이전트>/` 아래 파일을 직접 복사하거나 심볼릭 링크해도 동일하게 동작합니다. 루트 파일(`GEMINI.md`)은 기존 내용을 유지하려면 `<!-- docs-numbering:start -->` ~ `<!-- docs-numbering:end -->` 블록 형태로 삽입하세요.
 
 ---
 
@@ -1015,7 +1011,13 @@ docs-numbering uninstall --agent=copilot           # 프로젝트: .github/copil
 | `알 수 없는 단계입니다` | `phases --method=X`로 유효 단계 확인 |
 | `다른 프로세스가 프로젝트를 잠그고 있습니다` | `.docs-numbering/lock` 파일 수동 삭제 |
 | `체크섬이 일치하지 않습니다` | 외부에서 파일 수정됨. `--force`로 롤백 |
-| `command not found: docs-numbering` | `~/.npm-packages/bin`을 PATH에 추가 |
+| `command not found: docs-numbering` | npm 전역 bin 경로를 PATH에 추가 (`npm prefix -g` + `/bin`, 보통 `~/.npm-packages/bin`) |
+| `install` picker가 뜨지 않음 | 비-TTY 환경(파이프 입력, CI, `--json`)이거나 `--agent` / `--all` / `--no-interactive`가 전달됨. 플래그 없이 TTY에서 실행하면 자동으로 picker가 동작 |
+| `unknown adapter: <이름>` | 유효한 이름: `claude-code`, `opencode`, `gemini`, `copilot`. 쉼표 목록 지원 (쉼표 주변 공백 없음) |
+| `npm error 404` `@hpiece/docs-numbering` | 패키지 미배포 상태. `git clone` + `npm link`로 설치 ([설치](#설치) 참조) |
+| 저장소를 옮긴 뒤 사용자 범위 심볼릭 링크가 구버전을 가리킴 | **자동 수복됨** — link 모드 어댑터(Claude Code)는 재설치 시 자동으로 다시 링크됩니다. `docs-numbering install --user --all` 재실행 또는 `npm link` 재실행으로 postinstall 훅이 갱신. 작업 상태가 `relinked`로 표시됩니다. |
+| copy 모드 사용자 범위 파일이 구버전 그대로 | `install`은 사용자 편집 보존을 위해 기존 복사본을 건드리지 않습니다. OpenCode / Gemini / Copilot CLI 파일을 최신으로 갱신하려면: `docs-numbering install --user --all --force`. |
+| `npm unlink -g` 했는데 `/docs-*` 슬래시 커맨드가 남아있음 | npm이 전역 링크 해제 시 `preuninstall` 훅을 건너뛰어 어댑터 파일이 정리되지 않은 상태. 복구: `cd docs-numbering/core && npm link && npm run unlink-all`. 재발 방지: `npm unlink -g` 대신 항상 `npm run unlink-all` 사용. |
 
 ---
 

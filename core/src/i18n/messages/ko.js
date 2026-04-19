@@ -15,5 +15,9 @@ export default {
   'warnings.phase_not_in_presets': "경고: '{phase}' 단계가 활성화된 프리셋에 없습니다",
   'cli.error_prefix': '오류: {message}',
   'install.exists_hint': '{path}에 이미 존재합니다 (덮어쓰려면 --force 사용)',
-  'install.no_detection': '이 프로젝트에서 지원되는 에이전트를 찾지 못했습니다. --agent <이름> 또는 --all을 사용하세요.'
+  'install.no_detection': '이 프로젝트에서 지원되는 에이전트를 찾지 못했습니다. --agent <이름> 또는 --all을 사용하세요.',
+  'install.picker_title': '설치할 CLI를 선택하세요 (감지된 항목은 * 표시):',
+  'install.picker_detected_tag': '(감지됨)',
+  'install.picker_prompt': '번호/이름 쉼표 구분, (a)전체, Enter=감지됨, (q)취소: ',
+  'install.picker_no_selection': '선택된 CLI가 없습니다.'
 };

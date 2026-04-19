@@ -15,5 +15,9 @@ export default {
   'warnings.phase_not_in_presets': "warn: phase '{phase}' not in enabled presets",
   'cli.error_prefix': 'error: {message}',
   'install.exists_hint': 'exists at {path} (use --force to overwrite)',
-  'install.no_detection': 'no supported agent detected in this project. Use --agent <name> or --all.'
+  'install.no_detection': 'no supported agent detected in this project. Use --agent <name> or --all.',
+  'install.picker_title': 'Select CLIs to install (detected marked with *):',
+  'install.picker_detected_tag': '(detected)',
+  'install.picker_prompt': 'numbers/names comma-separated, (a)ll, Enter=detected, (q)uit: ',
+  'install.picker_no_selection': 'no CLIs selected.'
 };

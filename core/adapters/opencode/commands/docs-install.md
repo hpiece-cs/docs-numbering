@@ -12,7 +12,7 @@ Run the docs-numbering installer in the **current project directory**.
    ```
    If not found, tell the user to install it globally (`npm install -g @hpiece/docs-numbering`) and stop.
 
-2. Run install (auto-detects `.claude/`, `.opencode/`, `AGENTS.md`, `GEMINI.md`, `.github/`, and auto-creates `.docs-numbering.yaml` if missing):
+2. Run install (auto-detects `.claude/`, `.opencode/`, `GEMINI.md`, `.copilot/`, and auto-creates `.docs-numbering.yaml` if missing):
    ```bash
    docs-numbering install --json
    ```

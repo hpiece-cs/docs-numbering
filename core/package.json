@@ -44,7 +44,9 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "postinstall": "node ./bin/docs-numbering.js install --user --all --no-init 2>&1 || true",
-    "preuninstall": "node ./bin/docs-numbering.js uninstall --user --all 2>&1 || true"
+    "preuninstall": "node ./bin/docs-numbering.js uninstall --user --all 2>&1 || true",
+    "uninstall-all": "node ./bin/docs-numbering.js uninstall --user --all",
+    "unlink-all": "node ./bin/docs-numbering.js uninstall --user --all && npm unlink -g @hpiece/docs-numbering"
   },
   "dependencies": {
     "commander": "^12.1.0",

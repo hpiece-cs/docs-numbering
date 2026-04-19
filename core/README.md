@@ -1,6 +1,6 @@
 # @hpiece/docs-numbering
 
-마크다운 문서를 **일관된 번호 규칙**으로 관리하는 CLI 도구입니다. 코어 CLI는 에이전트에 구애받지 않으며, Claude Code, Codex, OpenCode, Gemini CLI, GitHub Copilot 어댑터를 제공합니다. 한국어 파일명, 여러 개발 방법론 혼합, Git 없는 롤백을 지원합니다.
+마크다운 문서를 **일관된 번호 규칙**으로 관리하는 CLI 도구입니다. 코어 CLI는 에이전트에 구애받지 않으며, Claude Code, OpenCode, Gemini CLI, Copilot CLI 어댑터를 제공합니다. 한국어 파일명, 여러 개발 방법론 혼합, Git 없는 롤백을 지원합니다.
 
 ---
 
@@ -254,9 +254,8 @@ docs-numbering install --all
 |----------|----------|----------|--------|
 | Claude Code | `.claude/skills/docs-numbering`, `.claude/commands/*.md` | 심볼릭 링크 | 슬래시 + 자연어 |
 | OpenCode | `.opencode/commands/*.md` | 복사 | 슬래시 |
-| Codex / Cursor / Windsurf | `AGENTS.md` (루트) | 병합 | 자연어 |
-| Gemini CLI | `GEMINI.md` (루트) | 병합 | 자연어 |
-| GitHub Copilot | `.github/copilot-instructions.md` | 병합 | 자연어 |
+| Gemini CLI | `GEMINI.md` (프로젝트) / `~/.gemini/commands/*.toml` (사용자) | 병합 / 복사 | 슬래시 + 자연어 |
+| Copilot CLI | `~/.copilot/skills/docs-*/SKILL.md` | 복사 | 슬래시 |
 
 자세한 옵션은 상위 디렉토리의 [User Manual](../docs/USER_MANUAL_KO.md)을 참조하세요.
 

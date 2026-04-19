@@ -64,7 +64,10 @@ function pathExists(p) {
 
 function installLink(srcAbs, destAbs) {
   ensureParent(destAbs);
-  const target = relative(dirname(destAbs), srcAbs);
+  let destDir;
+  try { destDir = realpathSync(dirname(destAbs)); }
+  catch { destDir = dirname(destAbs); }
+  const target = relative(destDir, srcAbs);
   symlinkSync(target, destAbs);
 }
 
@@ -155,6 +158,7 @@ export async function installAdapter({ cwd, baseDir, agent, mode, force, dryRun,
       continue;
     }
 
+    let relinked = false;
     if (pathExists(destAbs)) {
       if (effectiveMode === 'link' && sameRealPath(destAbs, srcAbs)) {
         actions.push({
@@ -163,20 +167,27 @@ export async function installAdapter({ cwd, baseDir, agent, mode, force, dryRun,
         });
         continue;
       }
-      if (!force) {
+      const isStaleSymlink =
+        effectiveMode === 'link' && lstatSync(destAbs).isSymbolicLink();
+      if (isStaleSymlink) {
+        if (!dryRun) unlinkSync(destAbs);
+        relinked = true;
+      } else if (!force) {
         actions.push({
           adapter: agent, mode: effectiveMode, from: item.from, to: item.to,
           status: 'exists', action: 'skip',
           hint: t('install.exists_hint', { path: item.to })
         });
         continue;
+      } else if (!dryRun) {
+        removePath(destAbs, { isDir });
       }
-      if (!dryRun) removePath(destAbs, { isDir });
     }
 
     actions.push({
       adapter: agent, mode: effectiveMode, from: item.from, to: item.to,
-      status: dryRun ? 'dry-run' : 'ok', action: effectiveMode
+      status: dryRun ? 'dry-run' : (relinked ? 'relinked' : 'ok'),
+      action: effectiveMode
     });
     if (dryRun) continue;
 

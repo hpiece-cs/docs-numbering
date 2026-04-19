@@ -119,12 +119,13 @@ program.command('rollback [id]')
   });
 
 program.command('install')
-  .option('--agent <name>', 'claude-code | opencode | codex | gemini | copilot')
+  .option('--agent <names>', 'comma-separated: claude-code,opencode,gemini,copilot')
   .option('--all', 'install for all adapters')
   .option('--mode <mode>', 'link | copy | merge (auto when omitted)')
   .option('--force', 'overwrite existing files')
   .option('--user', 'install into user home (~/.claude/ etc.) instead of project')
   .option('--no-init', 'skip auto-creating .docs-numbering.yaml when missing')
+  .option('--no-interactive', 'disable interactive picker in TTY')
   .option('--dry-run')
   .action(async (opts) => {
     const g = program.opts();
@@ -133,7 +134,7 @@ program.command('install')
   });
 
 program.command('uninstall')
-  .option('--agent <name>')
+  .option('--agent <names>', 'comma-separated adapter names')
   .option('--all')
   .option('--user', 'uninstall from user home instead of project')
   .option('--dry-run')

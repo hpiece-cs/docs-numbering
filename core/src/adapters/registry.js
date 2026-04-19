@@ -56,74 +56,6 @@ export const ADAPTERS = {
       }
     ]
   },
-  codex: {
-    name: 'codex',
-    label: 'Codex CLI',
-    defaultMode: 'copy',
-    detect: ['.codex', 'AGENTS.md'],
-    userScope: true,
-    userDefaultMode: 'copy',
-    items: [
-      {
-        type: 'glob',
-        fromDir: 'codex/prompts',
-        pattern: /\.md$/,
-        toDir: '.codex/prompts'
-      },
-      {
-        type: 'merge',
-        from: 'agents-md/AGENTS.md',
-        to: 'AGENTS.md'
-      }
-    ],
-    userItems: [
-      {
-        type: 'glob',
-        fromDir: 'codex/prompts',
-        pattern: /\.md$/,
-        toDir: '.codex/prompts'
-      }
-    ]
-  },
-  cursor: {
-    name: 'cursor',
-    label: 'Cursor',
-    defaultMode: 'copy',
-    detect: ['.cursor'],
-    userScope: true,
-    userDefaultMode: 'copy',
-    items: [
-      {
-        type: 'glob',
-        fromDir: 'cursor/commands',
-        pattern: /\.md$/,
-        toDir: '.cursor/commands'
-      }
-    ],
-    userItems: [
-      {
-        type: 'glob',
-        fromDir: 'cursor/commands',
-        pattern: /\.md$/,
-        toDir: '.cursor/commands'
-      }
-    ]
-  },
-  windsurf: {
-    name: 'windsurf',
-    label: 'Windsurf',
-    defaultMode: 'copy',
-    detect: ['.windsurf'],
-    userScope: false,
-    items: [
-      {
-        type: 'glob',
-        fromDir: 'windsurf/workflows',
-        pattern: /\.md$/,
-        toDir: '.windsurf/workflows'
-      }
-    ]
-  },
   gemini: {
     name: 'gemini',
     label: 'Gemini CLI',
@@ -149,27 +81,16 @@ export const ADAPTERS = {
   },
   copilot: {
     name: 'copilot',
-    label: 'GitHub Copilot (CLI + VS Code)',
+    label: 'Copilot CLI',
     defaultMode: 'copy',
-    detect: ['.github', '.copilot'],
+    detect: ['.copilot'],
     userScope: true,
     userDefaultMode: 'copy',
     items: [
-      {
-        type: 'merge',
-        from: 'copilot/.github/copilot-instructions.md',
-        to: '.github/copilot-instructions.md'
-      },
-      {
-        type: 'glob',
-        fromDir: 'copilot/prompts',
-        pattern: /\.prompt\.md$/,
-        toDir: '.github/prompts'
-      },
-      { type: 'dir', from: 'copilot/skills/docs-install', to: '.github/skills/docs-install' },
-      { type: 'dir', from: 'copilot/skills/docs-new', to: '.github/skills/docs-new' },
-      { type: 'dir', from: 'copilot/skills/docs-migrate', to: '.github/skills/docs-migrate' },
-      { type: 'dir', from: 'copilot/skills/docs-rollback', to: '.github/skills/docs-rollback' }
+      { type: 'dir', from: 'copilot/skills/docs-install', to: '.copilot/skills/docs-install' },
+      { type: 'dir', from: 'copilot/skills/docs-new', to: '.copilot/skills/docs-new' },
+      { type: 'dir', from: 'copilot/skills/docs-migrate', to: '.copilot/skills/docs-migrate' },
+      { type: 'dir', from: 'copilot/skills/docs-rollback', to: '.copilot/skills/docs-rollback' }
     ],
     userItems: [
       { type: 'dir', from: 'copilot/skills/docs-install', to: '.copilot/skills/docs-install' },
